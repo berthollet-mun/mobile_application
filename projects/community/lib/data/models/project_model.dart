@@ -86,4 +86,6 @@ class ProjectModel {
           completion_percentage ?? this.completion_percentage, // ✅ Type correct
     );
   }
+
+  bool get isArchived => archived_at != null;
 }
