@@ -1,11 +1,11 @@
 class UserModel {
   final int user_id;
   final String email;
-  final String? password; // ✅ Nullable car pas toujours retourné
+  final String? password;
   final String nom;
   final String prenom;
-  final DateTime? created_at; // ✅ Nullable car pas toujours retourné
-  final String? token; // ✅ Ajouté pour stocker le token
+  final DateTime created_at; // ✅ Required (non nullable)
+  final String? token;
 
   UserModel({
     required this.user_id,
@@ -13,26 +13,25 @@ class UserModel {
     this.password,
     required this.nom,
     required this.prenom,
-    this.created_at,
+    required this.created_at, // ✅ Required
     this.token,
   });
 
   // Convertir un Map json en User
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
-      // ✅ Gérer le cas où user_id est un String ou un int
       user_id: json['user_id'] is String
           ? int.parse(json['user_id'])
           : json['user_id'],
       email: json['email'] ?? '',
-      password: json['password'], // ✅ Peut être null
+      password: json['password'],
       nom: json['nom'] ?? '',
       prenom: json['prenom'] ?? '',
-      // ✅ Gérer le cas où created_at n'existe pas
+      // ✅ Si created_at est null, utiliser DateTime.now()
       created_at: json['created_at'] != null
           ? DateTime.parse(json['created_at'])
-          : null,
-      token: json['token'], // ✅ Stocker le token
+          : DateTime.now(),
+      token: json['token'],
     );
   }
 
@@ -44,7 +43,7 @@ class UserModel {
       if (password != null) 'password': password,
       'nom': nom,
       'prenom': prenom,
-      if (created_at != null) 'created_at': created_at!.toIso8601String(),
+      'created_at': created_at.toIso8601String(), // ✅ Toujours inclus
       if (token != null) 'token': token,
     };
   }
@@ -70,10 +69,10 @@ class UserModel {
   }
 
   // Méthode utilitaire pour obtenir le nom complet
-  String get nomComplet => '$prenom $nom';
+  String get fullName => '$prenom $nom';
 
   @override
   String toString() {
-    return 'UserModel(user_id: $user_id, email: $email, nom: $nom, prenom: $prenom)';
+    return 'UserModel(user_id: $user_id, email: $email, nom: $nom, prenom: $prenom, created_at: $created_at)';
   }
 }
