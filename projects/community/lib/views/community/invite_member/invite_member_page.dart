@@ -23,7 +23,7 @@ class _InviteMemberPageState extends State<InviteMemberPage> {
   void initState() {
     super.initState();
     _community = _communityController.currentCommunity.value!;
-    _inviteCode = _community.invite_code as String;
+    _inviteCode = _community.invite_code.toString();
   }
 
   Future<void> _generateNewCode() async {

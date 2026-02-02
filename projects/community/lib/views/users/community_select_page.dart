@@ -263,17 +263,19 @@ class _CommunitySelectPageState extends State<CommunitySelectPage> {
                 children: [
                   _buildStatItem(
                     icon: Icons.people_outline,
-                    value: community.members_count?.toString() ?? '?',
+                    value: community.members_count.toString() ?? '?',
                     label: 'Membres',
                   ),
                   _buildStatItem(
                     icon: Icons.folder_outlined,
-                    value: community.projects_count?.toString() ?? '?',
+                    value: community.projects_count.toString() ?? '?',
                     label: 'Projets',
                   ),
                   _buildStatItem(
                     icon: Icons.calendar_today,
-                    value: _formatDate(community.created_at),
+                    value: community.created_at != null
+                        ? _formatDate(community.created_at!)
+                        : 'N/A', // ✅ CORRIGÉ
                     label: 'Créée',
                   ),
                 ],
@@ -419,7 +421,7 @@ class _CommunitySelectPageState extends State<CommunitySelectPage> {
             ),
             const SizedBox(height: 4),
             SelectableText(
-              community.invite_code as String,
+              community.invite_code.toString(),
               style: const TextStyle(
                 fontFamily: 'Courier',
                 fontSize: 16,
@@ -431,7 +433,12 @@ class _CommunitySelectPageState extends State<CommunitySelectPage> {
               children: [
                 _buildDetailItem('Rôle', community.role),
                 const SizedBox(width: 16),
-                _buildDetailItem('Créée', _formatDate(community.created_at)),
+                _buildDetailItem(
+                  'Créée',
+                  community.created_at != null
+                      ? _formatDate(community.created_at!)
+                      : 'N/A', // ✅ CORRIGÉ
+                ),
               ],
             ),
           ],

@@ -81,15 +81,33 @@ class ApiService extends GetxService {
     }
   }
 
-  ApiResponse _handleResponse(http.Response response) {
-    final Map<String, dynamic> data = json.decode(response.body);
+  // ApiResponse _handleResponse(http.Response response) {
+  //   final Map<String, dynamic> data = json.decode(response.body);
 
-    if (response.statusCode >= 200 && response.statusCode < 300) {
-      return ApiResponse.success(data: data['data'] ?? data);
-    } else {
-      final error = data['error'] ?? 'Erreur inconnue';
-      final code = data['code'] ?? 'UNKNOWN_ERROR';
-      return ApiResponse.error(error, code: code);
-    }
+  //   if (response.statusCode >= 200 && response.statusCode < 300) {
+  //     return ApiResponse.success(data: data['data'] ?? data);
+  //   } else {
+  //     final error = data['error'] ?? 'Erreur inconnue';
+  //     final code = data['code'] ?? 'UNKNOWN_ERROR';
+  //     return ApiResponse.error(error, code: code);
+  //   }
+  // }
+
+  ApiResponse _handleResponse(http.Response response) {
+  // 🔍 DEBUG - À SUPPRIMER APRÈS
+  print('=== API RESPONSE ===');
+  print('Status Code: ${response.statusCode}');
+  print('Body: ${response.body}');
+  print('====================');
+  
+  final Map<String, dynamic> data = json.decode(response.body);
+
+  if (response.statusCode >= 200 && response.statusCode < 300) {
+    return ApiResponse.success(data: data['data'] ?? data);
+  } else {
+    final error = data['error'] ?? 'Erreur inconnue';
+    final code = data['code'] ?? 'UNKNOWN_ERROR';
+    return ApiResponse.error(error, code: code);
   }
+}
 }
