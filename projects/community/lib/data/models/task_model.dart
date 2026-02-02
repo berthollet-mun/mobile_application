@@ -1,53 +1,56 @@
 class TaskModel {
-  int id;
-  String titre;
-  String description;
-  String project_nom;
-  String status;
-  int assigned_to;
-  String assigned_nom;
-  String assigned_prenom;
-  String assigned_email;
-  String creator_nom;
-  String creator_prenom;
-  DateTime due_date;
-  int comments_count;
-  DateTime created_at;
+  final int id;
+  final String titre;
+  final String description;
+  final String? project_nom;
+  final String status;
+  final int? assigned_to;
+  final String? assigned_nom;
+  final String? assigned_prenom;
+  final String? assigned_email;
+  final String? creator_nom;
+  final String? creator_prenom;
+  final DateTime? due_date;
+  final int comments_count;
+  final DateTime created_at;
 
   TaskModel({
     required this.id,
     required this.titre,
     required this.description,
-    required this.project_nom,
+    this.project_nom,
     required this.status,
-    required this.assigned_to,
-    required this.assigned_nom,
-    required this.assigned_prenom,
-    required this.assigned_email,
-    required this.creator_nom,
-    required this.creator_prenom,
-    required this.due_date,
-    required this.comments_count,
+    this.assigned_to,
+    this.assigned_nom,
+    this.assigned_prenom,
+    this.assigned_email,
+    this.creator_nom,
+    this.creator_prenom,
+    this.due_date,
+    this.comments_count = 0,
     required this.created_at,
   });
 
-  //
   factory TaskModel.fromJson(Map<String, dynamic> json) {
     return TaskModel(
-      id: json['id'],
-      titre: json['titre'],
-      description: json['description'],
+      id: json['id'] ?? 0,
+      titre: json['titre'] ?? '',
+      description: json['description'] ?? '',
       project_nom: json['project_nom'],
-      status: json['status'],
+      status: json['status'] ?? 'À faire',
       assigned_to: json['assigned_to'],
       assigned_nom: json['assigned_nom'],
       assigned_prenom: json['assigned_prenom'],
       assigned_email: json['assigned_email'],
       creator_nom: json['creator_nom'],
       creator_prenom: json['creator_prenom'],
-      due_date: DateTime.parse(json['due_date']),
-      comments_count: json['comments_count'],
-      created_at: DateTime.parse(json['created_at']),
+      due_date: json['due_date'] != null
+          ? DateTime.tryParse(json['due_date'])
+          : null,
+      comments_count: json['comments_count'] ?? 0,
+      created_at: json['created_at'] != null
+          ? DateTime.parse(json['created_at'])
+          : DateTime.now(),
     );
   }
 
@@ -64,7 +67,7 @@ class TaskModel {
       'assigned_email': assigned_email,
       'creator_nom': creator_nom,
       'creator_prenom': creator_prenom,
-      'due_date': due_date.toIso8601String(),
+      'due_date': due_date?.toIso8601String(),
       'comments_count': comments_count,
       'created_at': created_at.toIso8601String(),
     };
@@ -103,4 +106,22 @@ class TaskModel {
       created_at: created_at ?? this.created_at,
     );
   }
+
+  // Getters utiles
+  String get assignedFullName {
+    if (assigned_prenom == null && assigned_nom == null) return 'Non assigné';
+    return '${assigned_prenom ?? ''} ${assigned_nom ?? ''}'.trim();
+  }
+
+  String get creatorFullName {
+    if (creator_prenom == null && creator_nom == null) return 'Inconnu';
+    return '${creator_prenom ?? ''} ${creator_nom ?? ''}'.trim();
+  }
+
+  bool get isOverdue {
+    if (due_date == null) return false;
+    return due_date!.isBefore(DateTime.now()) && status != 'Terminé';
+  }
+
+  bool get isAssigned => assigned_to != null;
 }

@@ -223,7 +223,7 @@ class _CommunityDashboardPageState extends State<CommunityDashboardPage> {
               _buildStatCard(
                 context,
                 icon: Icons.people_outline,
-                value: community.members_count?.toString() ?? '0',
+                value: community.members_count.toString(),
                 label: 'Membres',
                 color: Colors.blue,
               ),
@@ -595,9 +595,9 @@ class _CommunityDashboardPageState extends State<CommunityDashboardPage> {
             const SizedBox(height: 8),
             Text('Votre rôle: ${community.role}'),
             const SizedBox(height: 8),
-            Text('Membres: ${community.members_count ?? 0}'),
+            Text('Membres: ${community.members_count}'),
             const SizedBox(height: 8),
-            Text('Projets: ${community.projects_count ?? 0}'),
+            Text('Projets: ${community.projects_count}'),
             const SizedBox(height: 8),
             // ✅ APRÈS
             Text(

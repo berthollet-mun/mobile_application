@@ -2,7 +2,7 @@ class CommunityModel {
   final int community_id;
   final String nom;
   final String description;
-  final int invite_code;
+  final String invite_code; // ✅ Changer en String
   final String role;
   final DateTime? joined_at;
   final DateTime? created_at;
@@ -26,16 +26,13 @@ class CommunityModel {
   });
 
   factory CommunityModel.fromJson(Map<String, dynamic> json) {
-    // 🔍 DEBUG
-    print('=== PARSING COMMUNITY ===');
-    print('JSON reçu: $json');
-    print('=========================');
-    
     return CommunityModel(
-      community_id: _parseInt(json['community_id']),
+      // ✅ Accepter "id" ou "community_id"
+      community_id: json['community_id'] ?? json['id'] ?? 0,
       nom: json['nom']?.toString() ?? '',
       description: json['description']?.toString() ?? '',
-      invite_code: _parseInt(json['invite_code']),
+      // ✅ invite_code est une String
+      invite_code: json['invite_code']?.toString() ?? '',
       role: json['role']?.toString() ?? 'MEMBRE',
       joined_at: _parseDate(json['joined_at']),
       created_at: _parseDate(json['created_at']),
@@ -46,7 +43,6 @@ class CommunityModel {
     );
   }
 
-  // Helper pour parser les int de manière sécurisée
   static int _parseInt(dynamic value, {int defaultValue = 0}) {
     if (value == null) return defaultValue;
     if (value is int) return value;
@@ -54,7 +50,6 @@ class CommunityModel {
     return defaultValue;
   }
 
-  // Helper pour parser les dates de manière sécurisée
   static DateTime? _parseDate(dynamic value) {
     if (value == null) return null;
     if (value is DateTime) return value;
@@ -88,7 +83,7 @@ class CommunityModel {
     int? community_id,
     String? nom,
     String? description,
-    int? invite_code,
+    String? invite_code,
     String? role,
     DateTime? joined_at,
     DateTime? created_at,
@@ -112,7 +107,6 @@ class CommunityModel {
     );
   }
 
-  // Getters utiles
-  String get inviteCodeString => invite_code.toString();
-  String get fullCreatorName => '${creator_prenom ?? ''} ${creator_nom ?? ''}'.trim();
+  String get fullCreatorName =>
+      '${creator_prenom ?? ''} ${creator_nom ?? ''}'.trim();
 }

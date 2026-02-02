@@ -116,9 +116,7 @@ class CommunityController extends GetxController {
           currentCommunity.value?.community_id == communityId) {
         // Utiliser copyWith avec les bons noms
         currentCommunity.value = currentCommunity.value!.copyWith(
-          invite_code:
-              int.tryParse(invite.inviteCode) ??
-              currentCommunity.value!.invite_code,
+          invite_code: invite.inviteCode,
         );
       }
       return invite;

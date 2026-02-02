@@ -1,15 +1,15 @@
 class ProjectModel {
-  int id;
-  String nom;
-  String description;
-  int created_by;
-  DateTime created_at;
-  DateTime archived_at;
-  String creator_nom;
-  String creator_prenom;
-  int tasks_count;
-  int completed_tasks;
-  double completion_percentage;
+  final int id;
+  final String nom;
+  final String description;
+  final int created_by;
+  final DateTime created_at;
+  final DateTime? archived_at;
+  final String? creator_nom;
+  final String? creator_prenom;
+  final int tasks_count;
+  final int completed_tasks;
+  final double completion_percentage;
 
   ProjectModel({
     required this.id,
@@ -17,27 +17,31 @@ class ProjectModel {
     required this.description,
     required this.created_by,
     required this.created_at,
-    required this.archived_at,
-    required this.creator_nom,
-    required this.creator_prenom,
-    required this.tasks_count,
-    required this.completed_tasks,
-    required this.completion_percentage,
+    this.archived_at,
+    this.creator_nom,
+    this.creator_prenom,
+    this.tasks_count = 0,
+    this.completed_tasks = 0,
+    this.completion_percentage = 0.0,
   });
 
   factory ProjectModel.fromJson(Map<String, dynamic> json) {
     return ProjectModel(
-      id: json['id'],
-      nom: json['nom'],
-      description: json['description'],
-      created_by: json['created_by'],
-      created_at: DateTime.parse(json['created_at']),
-      archived_at: DateTime.parse(json['archived_at']),
+      id: json['id'] ?? 0,
+      nom: json['nom'] ?? '',
+      description: json['description'] ?? '',
+      created_by: json['created_by'] ?? 0,
+      created_at: json['created_at'] != null
+          ? DateTime.parse(json['created_at'])
+          : DateTime.now(),
+      archived_at: json['archived_at'] != null
+          ? DateTime.tryParse(json['archived_at'])
+          : null,
       creator_nom: json['creator_nom'],
       creator_prenom: json['creator_prenom'],
-      tasks_count: json['tasks_count'],
-      completed_tasks: json['completed_tasks'],
-      completion_percentage: json['completion_percentage'].toDouble(),
+      tasks_count: json['tasks_count'] ?? 0,
+      completed_tasks: json['completed_tasks'] ?? 0,
+      completion_percentage: (json['completion_percentage'] ?? 0).toDouble(),
     );
   }
 
@@ -48,7 +52,7 @@ class ProjectModel {
       'description': description,
       'created_by': created_by,
       'created_at': created_at.toIso8601String(),
-      'archived_at': archived_at.toIso8601String(),
+      'archived_at': archived_at?.toIso8601String(),
       'creator_nom': creator_nom,
       'creator_prenom': creator_prenom,
       'tasks_count': tasks_count,
@@ -57,7 +61,6 @@ class ProjectModel {
     };
   }
 
-  // CORRECTION ICI : changer int? en double?
   ProjectModel copyWith({
     int? id,
     String? nom,
@@ -69,7 +72,7 @@ class ProjectModel {
     String? creator_prenom,
     int? tasks_count,
     int? completed_tasks,
-    double? completion_percentage, // Changer int? → double?
+    double? completion_percentage,
   }) {
     return ProjectModel(
       id: id ?? this.id,
@@ -83,9 +86,15 @@ class ProjectModel {
       tasks_count: tasks_count ?? this.tasks_count,
       completed_tasks: completed_tasks ?? this.completed_tasks,
       completion_percentage:
-          completion_percentage ?? this.completion_percentage, // ✅ Type correct
+          completion_percentage ?? this.completion_percentage,
     );
   }
 
+  // Getters utiles
   bool get isArchived => archived_at != null;
+
+  String get creatorFullName {
+    if (creator_prenom == null && creator_nom == null) return 'Inconnu';
+    return '${creator_prenom ?? ''} ${creator_nom ?? ''}'.trim();
+  }
 }

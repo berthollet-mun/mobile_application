@@ -27,10 +27,25 @@ class ProjectService extends GetxService {
     required String nom,
     required String description,
   }) async {
+    // 🔍 DEBUG
+    print('=== CREATE PROJECT ===');
+    print('Community ID: $communityId');
+    print('Nom: $nom');
+    print('Description: $description');
+    print('URL: /communities/$communityId/projects');
+    print('======================');
+
     final response = await _apiService.post(
       '/communities/$communityId/projects',
       {'nom': nom, 'description': description},
     );
+
+    // 🔍 DEBUG
+    print('=== CREATE PROJECT RESPONSE ===');
+    print('Success: ${response.success}');
+    print('Data: ${response.data}');
+    print('Message: ${response.message}');
+    print('===============================');
 
     if (response.success) {
       return ProjectModel.fromJson(response.data);
