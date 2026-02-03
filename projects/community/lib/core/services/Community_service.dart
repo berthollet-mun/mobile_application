@@ -27,8 +27,18 @@ class CommunityService extends GetxService {
       'description': description,
     });
 
+    // Debug: Afficher la réponse pour comprendre sa structure
+    print('Response success: ${response.success}');
+    print('Response data: ${response.data}');
+    print('Response message: ${response.message}');
+
     if (response.success) {
-      return CommunityModel.fromJson(response.data);
+      // Vérifier si la donnée est dans 'community' ou directement dans data
+      if (response.data['community'] != null) {
+        return CommunityModel.fromJson(response.data['community']);
+      } else {
+        return CommunityModel.fromJson(response.data);
+      }
     }
     return null;
   }

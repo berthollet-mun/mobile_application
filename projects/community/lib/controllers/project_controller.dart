@@ -11,6 +11,10 @@ class ProjectController extends GetxController {
   final RxString error = ''.obs;
   final RxBool showArchived = false.obs;
 
+  void clearCurrentProject() {
+    currentProject.value = null;
+  }
+
   Future<void> loadProjects(int communityId) async {
     try {
       isLoading.value = true;

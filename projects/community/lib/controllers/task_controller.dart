@@ -53,11 +53,10 @@ class TaskController extends GetxController {
         assignedTo: assignedTo,
         dueDate: dueDate,
       );
+      print(task!.id);
 
-      if (task != null) {
-        _addTaskToKanban(task);
-        return task;
-      }
+      _addTaskToKanban(task);
+      return task;
       return null;
     } catch (e) {
       error.value = 'Erreur de création de la tâche: $e';

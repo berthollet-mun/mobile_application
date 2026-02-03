@@ -111,7 +111,7 @@ class _CommunitySelectPageState extends State<CommunitySelectPage> {
               // Liste des communautés
               ..._communityController.communities.map((community) {
                 return _buildCommunityCard(community);
-              }).toList(),
+              }),
               const SizedBox(height: 16),
             ],
           ),

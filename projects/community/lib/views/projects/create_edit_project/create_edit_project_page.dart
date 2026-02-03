@@ -213,6 +213,11 @@ class _CreateEditProjectPageState extends State<CreateEditProjectPage> {
       );
 
       if (project != null) {
+        print('✅ Projet créé avec ID: ${project.id}');
+        // ✅ IMPORTANT: Définir le projet courant AVANT de naviguer
+        _projectController.setCurrentProject(project);
+
+        // Puis naviguer
         Get.offNamed(AppRoutes.kanbanBoard);
         Get.snackbar(
           'Succès',

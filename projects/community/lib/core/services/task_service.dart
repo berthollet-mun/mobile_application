@@ -20,6 +20,8 @@ class TaskService extends GetxService {
     return null;
   }
 
+  // Dans task_service.dart - Remplacez createTask
+
   Future<TaskModel?> createTask({
     required int communityId,
     required int projectId,
@@ -36,14 +38,37 @@ class TaskService extends GetxService {
     if (assignedTo != null) data['assigned_to'] = assignedTo;
     if (dueDate != null) data['due_date'] = dueDate;
 
+    // ✅ DEBUG
+    print('=== CREATE TASK ===');
+    print('URL: /communities/$communityId/projects/$projectId/tasks');
+    print('DATA: $data');
+    print('===================');
+
     final response = await _apiService.post(
       '/communities/$communityId/projects/$projectId/tasks',
       data,
     );
 
-    if (response.success) {
-      return TaskModel.fromJson(response.data);
+    // ✅ DEBUG
+    print('CREATE TASK RESPONSE:');
+    print('  success: ${response.success}');
+    print('  message: ${response.message}');
+    print('  data: ${response.data}');
+
+    if (response.success && response.data != null) {
+      try {
+        // ✅ L'API peut renvoyer {task: {...}} ou directement {...}
+        final taskData = response.data!.containsKey('task')
+            ? response.data!['task']
+            : response.data;
+        return TaskModel.fromJson(taskData);
+      } catch (e) {
+        print('ERROR PARSING TASK: $e');
+        return null;
+      }
     }
+
+    print('CREATE TASK FAILED');
     return null;
   }
 

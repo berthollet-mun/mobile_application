@@ -93,21 +93,38 @@ class ApiService extends GetxService {
   //   }
   // }
 
-  ApiResponse _handleResponse(http.Response response) {
-  // 🔍 DEBUG - À SUPPRIMER APRÈS
-  print('=== API RESPONSE ===');
-  print('Status Code: ${response.statusCode}');
-  print('Body: ${response.body}');
-  print('====================');
-  
-  final Map<String, dynamic> data = json.decode(response.body);
+  // Dans api_service.dart - Remplacez _handleResponse
 
-  if (response.statusCode >= 200 && response.statusCode < 300) {
-    return ApiResponse.success(data: data['data'] ?? data);
-  } else {
-    final error = data['error'] ?? 'Erreur inconnue';
-    final code = data['code'] ?? 'UNKNOWN_ERROR';
-    return ApiResponse.error(error, code: code);
+  ApiResponse _handleResponse(http.Response response) {
+    print('=== API RESPONSE ===');
+    print('Status Code: ${response.statusCode}');
+    print('Body: ${response.body}');
+    print('====================');
+
+    // ✅ Gestion body vide
+    if (response.body.isEmpty) {
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return ApiResponse.success(data: {});
+      }
+      return ApiResponse.error(
+        'Erreur serveur (${response.statusCode})',
+        code: 'EMPTY_RESPONSE',
+      );
+    }
+
+    try {
+      final Map<String, dynamic> data = json.decode(response.body);
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return ApiResponse.success(data: data['data'] ?? data);
+      } else {
+        final error = data['error'] ?? data['message'] ?? 'Erreur inconnue';
+        final code = data['code']?.toString() ?? 'UNKNOWN_ERROR';
+        return ApiResponse.error(error.toString(), code: code);
+      }
+    } catch (e) {
+      print('JSON Parse Error: $e');
+      return ApiResponse.error('Erreur de parsing JSON', code: 'PARSE_ERROR');
+    }
   }
-}
 }

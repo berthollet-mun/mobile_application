@@ -53,7 +53,10 @@ class _ProjectsListPageState extends State<ProjectsListPage> {
           if (_canCreateProject(community))
             IconButton(
               icon: const Icon(Icons.add),
-              onPressed: () => Get.toNamed(AppRoutes.createEditProject),
+              onPressed: () {
+                _projectController.clearCurrentProject();
+                Get.toNamed(AppRoutes.createEditProject);
+              },
             ),
         ],
       ),
@@ -79,7 +82,10 @@ class _ProjectsListPageState extends State<ProjectsListPage> {
             title: 'Aucun projet',
             message: 'Créez votre premier projet !',
             icon: Icons.folder_open_outlined,
-            onAction: () => Get.toNamed(AppRoutes.createEditProject),
+            onAction: () {
+              _projectController.clearCurrentProject();
+              Get.toNamed(AppRoutes.createEditProject);
+            },
             actionLabel: 'Créer un projet',
           );
         }
@@ -96,7 +102,10 @@ class _ProjectsListPageState extends State<ProjectsListPage> {
       }),
       floatingActionButton: _canCreateProject(community)
           ? FloatingActionButton.extended(
-              onPressed: () => Get.toNamed(AppRoutes.createEditProject),
+              onPressed: () {
+                _projectController.clearCurrentProject();
+                Get.toNamed(AppRoutes.createEditProject);
+              },
               icon: const Icon(Icons.add),
               label: const Text('Nouveau projet'),
             )

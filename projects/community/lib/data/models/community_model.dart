@@ -2,7 +2,7 @@ class CommunityModel {
   final int community_id;
   final String nom;
   final String description;
-  final String invite_code; // ✅ Changer en String
+  final String invite_code;
   final String role;
   final DateTime? joined_at;
   final DateTime? created_at;
@@ -27,11 +27,13 @@ class CommunityModel {
 
   factory CommunityModel.fromJson(Map<String, dynamic> json) {
     return CommunityModel(
-      // ✅ Accepter "id" ou "community_id"
-      community_id: json['community_id'] ?? json['id'] ?? 0,
+      // ✅ CORRECTION ICI - Utiliser _parseInt pour community_id aussi !
+      community_id: _parseInt(
+        json['community_id'] ?? json['id'],
+        defaultValue: 0,
+      ),
       nom: json['nom']?.toString() ?? '',
       description: json['description']?.toString() ?? '',
-      // ✅ invite_code est une String
       invite_code: json['invite_code']?.toString() ?? '',
       role: json['role']?.toString() ?? 'MEMBRE',
       joined_at: _parseDate(json['joined_at']),
@@ -43,6 +45,7 @@ class CommunityModel {
     );
   }
 
+  // ✅ Cette méthode gère String et int
   static int _parseInt(dynamic value, {int defaultValue = 0}) {
     if (value == null) return defaultValue;
     if (value is int) return value;

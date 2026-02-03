@@ -1,10 +1,11 @@
+// user_model.dart
 class UserModel {
   final int user_id;
   final String email;
   final String? password;
   final String nom;
   final String prenom;
-  final DateTime created_at; // ✅ Required (non nullable)
+  final DateTime created_at;
   final String? token;
 
   UserModel({
@@ -13,29 +14,40 @@ class UserModel {
     this.password,
     required this.nom,
     required this.prenom,
-    required this.created_at, // ✅ Required
+    required this.created_at,
     this.token,
   });
 
-  // Convertir un Map json en User
   factory UserModel.fromJson(Map<String, dynamic> json) {
-    return UserModel(
-      user_id: json['user_id'] is String
+    print('=== PARSING USER ===');
+    print('JSON reçu: $json');
+    print('====================');
+
+    // ✅ Gère user_id OU id (selon l'endpoint)
+    int userId;
+    if (json.containsKey('user_id')) {
+      userId = json['user_id'] is String
           ? int.parse(json['user_id'])
-          : json['user_id'],
-      email: json['email'] ?? '',
-      password: json['password'],
-      nom: json['nom'] ?? '',
-      prenom: json['prenom'] ?? '',
-      // ✅ Si created_at est null, utiliser DateTime.now()
+          : json['user_id'];
+    } else if (json.containsKey('id')) {
+      userId = json['id'] is String ? int.parse(json['id']) : json['id'];
+    } else {
+      userId = 0;
+    }
+
+    return UserModel(
+      user_id: userId,
+      email: json['email']?.toString() ?? '',
+      password: json['password']?.toString(),
+      nom: json['nom']?.toString() ?? '',
+      prenom: json['prenom']?.toString() ?? '',
       created_at: json['created_at'] != null
-          ? DateTime.parse(json['created_at'])
+          ? DateTime.tryParse(json['created_at'].toString()) ?? DateTime.now()
           : DateTime.now(),
-      token: json['token'],
+      token: json['token']?.toString(),
     );
   }
 
-  // Conversion d'un User en Json
   Map<String, dynamic> toJson() {
     return {
       'user_id': user_id,
@@ -43,7 +55,7 @@ class UserModel {
       if (password != null) 'password': password,
       'nom': nom,
       'prenom': prenom,
-      'created_at': created_at.toIso8601String(), // ✅ Toujours inclus
+      'created_at': created_at.toIso8601String(),
       if (token != null) 'token': token,
     };
   }
@@ -68,11 +80,10 @@ class UserModel {
     );
   }
 
-  // Méthode utilitaire pour obtenir le nom complet
-  String get fullName => '$prenom $nom';
+  String get fullName => '$prenom $nom'.trim();
 
   @override
   String toString() {
-    return 'UserModel(user_id: $user_id, email: $email, nom: $nom, prenom: $prenom, created_at: $created_at)';
+    return 'UserModel(user_id: $user_id, email: $email, nom: $nom, prenom: $prenom)';
   }
 }

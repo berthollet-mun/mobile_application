@@ -1,11 +1,11 @@
 class CommentModel {
-  int id;
-  String content;
-  String nom;
-  String prenom;
-  String email;
-  DateTime created_at;
-  DateTime updated_at;
+  final int id;
+  final String content;
+  final String nom;
+  final String prenom;
+  final String email;
+  final DateTime created_at;
+  final DateTime? updated_at; // ✅ Nullable
 
   CommentModel({
     required this.id,
@@ -14,17 +14,22 @@ class CommentModel {
     required this.prenom,
     required this.email,
     required this.created_at,
-    required this.updated_at,
+    this.updated_at, // ✅ Optionnel
   });
+
   factory CommentModel.fromJson(Map<String, dynamic> json) {
     return CommentModel(
-      id: json['id'],
-      content: json['content'],
-      nom: json['nom'],
-      prenom: json['prenom'],
-      email: json['email'],
-      created_at: DateTime.parse(json['created_at']),
-      updated_at: DateTime.parse(json['updated_at']),
+      id: json['id'] ?? 0,
+      content: json['content']?.toString() ?? json['contenu']?.toString() ?? '',
+      nom: json['nom']?.toString() ?? '',
+      prenom: json['prenom']?.toString() ?? '',
+      email: json['email']?.toString() ?? '',
+      created_at: json['created_at'] != null
+          ? DateTime.parse(json['created_at'])
+          : DateTime.now(),
+      updated_at: json['updated_at'] != null
+          ? DateTime.tryParse(json['updated_at'])
+          : null,
     );
   }
 
@@ -36,7 +41,7 @@ class CommentModel {
       'prenom': prenom,
       'email': email,
       'created_at': created_at.toIso8601String(),
-      'updated_at': updated_at.toIso8601String(),
+      if (updated_at != null) 'updated_at': updated_at!.toIso8601String(),
     };
   }
 
@@ -59,4 +64,6 @@ class CommentModel {
       updated_at: updated_at ?? this.updated_at,
     );
   }
+
+  String get fullName => '$prenom $nom'.trim();
 }

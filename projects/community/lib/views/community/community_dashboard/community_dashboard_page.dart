@@ -91,6 +91,7 @@ class _CommunityDashboardPageState extends State<CommunityDashboardPage> {
       }),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
+          _projectController.clearCurrentProject();
           Get.toNamed(AppRoutes.createEditProject);
         },
         icon: const Icon(Icons.add),
@@ -230,7 +231,7 @@ class _CommunityDashboardPageState extends State<CommunityDashboardPage> {
               _buildStatCard(
                 context,
                 icon: Icons.folder_outlined,
-                value: community.projects_count?.toString() ?? '0',
+                value: community.projects_count.toString() ?? '0',
                 label: 'Projets',
                 color: Colors.green,
               ),
@@ -464,6 +465,7 @@ class _CommunityDashboardPageState extends State<CommunityDashboardPage> {
                   SecondaryButton(
                     text: 'Créer un premier projet',
                     onPressed: () {
+                      _projectController.clearCurrentProject();
                       Get.toNamed(AppRoutes.createEditProject);
                     },
                     fullWidth: false,

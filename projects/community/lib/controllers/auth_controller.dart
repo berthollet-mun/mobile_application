@@ -70,14 +70,29 @@ class AuthController extends GetxController {
     }
   }
 
+  // Dans auth_controller.dart - Remplacez loadProfile
+
   Future<void> loadProfile() async {
     try {
       isLoading.value = true;
+      error.value = '';
+
+      print('=== LOADING PROFILE IN CONTROLLER ===');
+
       final data = await _authService.getProfile();
+
+      print('Profile data received: $data');
+
       if (data != null) {
         user.value = UserModel.fromJson(data);
+        print('User loaded: ${user.value?.fullName}');
+      } else {
+        error.value = 'Impossible de charger le profil';
+        print('Profile data is null');
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('Load profile error: $e');
+      print('Stack: $stackTrace');
       error.value = 'Erreur de chargement du profil: $e';
     } finally {
       isLoading.value = false;

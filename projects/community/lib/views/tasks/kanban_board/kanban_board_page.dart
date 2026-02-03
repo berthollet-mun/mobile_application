@@ -9,7 +9,6 @@ import 'package:community/data/models/community_model.dart';
 import 'package:community/data/models/task_model.dart';
 import 'package:community/views/shared/widgets/empty_state.dart';
 import 'package:community/views/shared/widgets/loading_widget.dart';
-import 'package:community/views/shared/widgets/status_chip.dart';
 
 class KanbanBoardPage extends StatefulWidget {
   const KanbanBoardPage({super.key});

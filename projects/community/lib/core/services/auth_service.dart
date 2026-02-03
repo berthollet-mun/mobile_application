@@ -69,8 +69,23 @@ class AuthService extends GetxService {
   }
 
   Future<Map<String, dynamic>?> getProfile() async {
+    print('=== GET PROFILE ===');
+
     final response = await _apiService.get('/auth/profile');
-    return response.success ? response.data : null;
+
+    print('Profile Response success: ${response.success}');
+    print('Profile Response data: ${response.data}');
+    print('Profile Response message: ${response.message}');
+    print('===================');
+
+    if (response.success && response.data != null) {
+      // ✅ L'API peut renvoyer {user: {...}} ou directement {...}
+      if (response.data!.containsKey('user')) {
+        return response.data!['user'] as Map<String, dynamic>;
+      }
+      return response.data;
+    }
+    return null;
   }
 
   Future<bool> updateProfile({
