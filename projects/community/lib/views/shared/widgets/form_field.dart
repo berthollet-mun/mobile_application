@@ -17,6 +17,7 @@ class CustomFormField extends StatelessWidget {
   final bool isRequired;
   final void Function(String)? onChanged;
   final void Function(String)? onFieldSubmitted;
+  final TextStyle? style; // ✅ Ajout du paramètre style
 
   const CustomFormField({
     super.key,
@@ -36,12 +37,14 @@ class CustomFormField extends StatelessWidget {
     this.isRequired = false,
     this.onChanged,
     this.onFieldSubmitted,
+    this.style, // ✅ Ajout du paramètre
   });
 
   @override
   Widget build(BuildContext context) {
     return TextFormField(
       controller: controller,
+      style: style, // ✅ Application du style au TextFormField
       decoration: InputDecoration(
         labelText: isRequired ? '$label *' : label,
         hintText: hintText,

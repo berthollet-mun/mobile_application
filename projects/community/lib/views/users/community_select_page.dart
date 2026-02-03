@@ -2,6 +2,8 @@ import 'package:community/app/routes/app_routes.dart';
 import 'package:community/app/themes/app_theme.dart';
 import 'package:community/controllers/auth_controller.dart';
 import 'package:community/controllers/community_controller.dart';
+import 'package:community/core/utils/responsive_helper.dart';
+import 'package:community/core/utils/widgets/responsive_builder.dart';
 import 'package:community/data/models/community_model.dart';
 import 'package:community/views/shared/widgets/button.dart';
 import 'package:community/views/shared/widgets/empty_state.dart';
@@ -37,17 +39,22 @@ class _CommunitySelectPageState extends State<CommunitySelectPage> {
 
   @override
   Widget build(BuildContext context) {
+    final responsive = ResponsiveHelper(context);
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mes Communautés'),
+        title: Text(
+          'Mes Communautés',
+          style: TextStyle(fontSize: responsive.fontSize(18)),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: Icon(Icons.refresh, size: responsive.iconSize(24)),
             onPressed: _refreshCommunities,
             tooltip: 'Actualiser',
           ),
           IconButton(
-            icon: const Icon(Icons.person),
+            icon: Icon(Icons.person, size: responsive.iconSize(24)),
             onPressed: () {
               Get.toNamed(AppRoutes.profile);
             },
@@ -87,116 +94,117 @@ class _CommunitySelectPageState extends State<CommunitySelectPage> {
 
         return RefreshIndicator(
           onRefresh: _refreshCommunities,
-          child: ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              // En-tête
-              Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Bonjour, ${_authController.user.value?.prenom ?? 'Utilisateur'} !',
-                      style: AppTheme.headline2,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Sélectionnez une communauté pour commencer',
-                      style: AppTheme.bodyText2,
-                    ),
-                  ],
-                ),
-              ),
-              // Liste des communautés
-              ..._communityController.communities.map((community) {
-                return _buildCommunityCard(community);
-              }),
-              const SizedBox(height: 16),
-            ],
-          ),
+          child: _buildCommunityList(responsive),
         );
       }),
-      floatingActionButton: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          FloatingActionButton.extended(
-            onPressed: () {
-              Get.toNamed(AppRoutes.joinCommunity);
-            },
-            icon: const Icon(Icons.key),
-            label: const Text('Rejoindre'),
-            heroTag: 'join_community',
-          ),
-          const SizedBox(height: 16),
-          FloatingActionButton.extended(
-            onPressed: () {
-              Get.toNamed(AppRoutes.createCommunity);
-            },
-            icon: const Icon(Icons.add),
-            label: const Text('Créer'),
-            heroTag: 'create_community',
-          ),
-        ],
-      ),
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.all(16),
-        color: Theme.of(context).cardColor,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              '${_communityController.communities.length} communauté(s)',
-              style: AppTheme.bodyText2,
-            ),
-            TextButton(
-              onPressed: () {
-                Get.defaultDialog(
-                  title: 'À propos des communautés',
-                  content: const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Les communautés sont des espaces de travail collaboratifs où vous pouvez :',
-                      ),
-                      SizedBox(height: 8),
-                      Text('• Créer et gérer des projets'),
-                      Text('• Travailler avec d\'autres membres'),
-                      Text('• Suivre l\'avancement des tâches'),
-                      Text('• Communiquer en temps réel'),
-                    ],
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Get.back(),
-                      child: const Text('Fermer'),
-                    ),
-                  ],
-                );
-              },
-              child: const Text('Aide'),
-            ),
-          ],
-        ),
-      ),
+      floatingActionButton: _buildFloatingActionButtons(responsive),
+      bottomNavigationBar: _buildBottomBar(responsive),
     );
   }
 
-  Widget _buildCommunityCard(CommunityModel community) {
+  /// Construction de la liste/grille des communautés
+  Widget _buildCommunityList(ResponsiveHelper responsive) {
+    // Sur desktop/large tablette, afficher en grille
+    if (responsive.isDesktop ||
+        (responsive.isTablet && responsive.screenWidth > 700)) {
+      return ResponsiveContainer(
+        maxWidth: 1200,
+        padding: EdgeInsets.all(responsive.contentPadding),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // En-tête
+            _buildHeader(responsive),
+            SizedBox(height: responsive.spacing(24)),
+            // Grille de communautés
+            Expanded(
+              child: GridView.builder(
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: responsive.value<int>(
+                    mobile: 1,
+                    tablet: 2,
+                    desktop: 3,
+                    largeDesktop: 4,
+                  ),
+                  crossAxisSpacing: responsive.spacing(16),
+                  mainAxisSpacing: responsive.spacing(16),
+                  childAspectRatio: responsive.value<double>(
+                    mobile: 1.8,
+                    tablet: 1.4,
+                    desktop: 1.2,
+                    largeDesktop: 1.3,
+                  ),
+                ),
+                itemCount: _communityController.communities.length,
+                itemBuilder: (context, index) {
+                  return _buildCommunityCard(
+                    _communityController.communities[index],
+                    responsive,
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Sur mobile/petite tablette, afficher en liste
+    return ListView(
+      padding: EdgeInsets.fromLTRB(
+        responsive.spacing(16),
+        responsive.spacing(16),
+        responsive.spacing(16),
+        responsive.isMobileSmall ? 140 : 100,
+      ),
+      children: [
+        // En-tête
+        _buildHeader(responsive),
+        SizedBox(height: responsive.spacing(16)),
+        // Liste des communautés
+        ..._communityController.communities.map((community) {
+          return _buildCommunityCard(community, responsive);
+        }),
+        // SizedBox(height: responsive.spacing(120)), // Espace pour les FAB
+      ],
+    );
+  }
+
+  /// En-tête avec message de bienvenue
+  Widget _buildHeader(ResponsiveHelper responsive) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Bonjour, ${_authController.user.value?.prenom ?? 'Utilisateur'} !',
+          style: AppTheme.headline2.copyWith(fontSize: responsive.fontSize(22)),
+        ),
+        SizedBox(height: responsive.spacing(4)),
+        Text(
+          'Sélectionnez une communauté pour commencer',
+          style: AppTheme.bodyText2.copyWith(fontSize: responsive.fontSize(14)),
+        ),
+      ],
+    );
+  }
+
+  /// Carte de communauté responsive
+  Widget _buildCommunityCard(
+    CommunityModel community,
+    ResponsiveHelper responsive,
+  ) {
     return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: EdgeInsets.only(bottom: responsive.spacing(16)),
+      elevation: responsive.value<double>(mobile: 2, tablet: 3, desktop: 4),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(responsive.spacing(12)),
+      ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () {
-          _selectCommunity(community);
-        },
-        onLongPress: () {
-          _showCommunityOptions(community);
-        },
+        borderRadius: BorderRadius.circular(responsive.spacing(12)),
+        onTap: () => _selectCommunity(community),
+        onLongPress: () => _showCommunityOptions(community, responsive),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(responsive.spacing(16)),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -205,24 +213,34 @@ class _CommunitySelectPageState extends State<CommunitySelectPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
-                    width: 50,
-                    height: 50,
+                    width: responsive.value<double>(
+                      mobile: 45,
+                      tablet: 50,
+                      desktop: 55,
+                    ),
+                    height: responsive.value<double>(
+                      mobile: 45,
+                      tablet: 50,
+                      desktop: 55,
+                    ),
                     decoration: BoxDecoration(
                       color: _getCommunityColor(community.community_id),
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(
+                        responsive.spacing(10),
+                      ),
                     ),
                     child: Center(
                       child: Text(
                         community.nom.substring(0, 1).toUpperCase(),
-                        style: const TextStyle(
-                          fontSize: 24,
+                        style: TextStyle(
+                          fontSize: responsive.fontSize(20),
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  SizedBox(width: responsive.spacing(12)),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -232,23 +250,25 @@ class _CommunitySelectPageState extends State<CommunitySelectPage> {
                             Expanded(
                               child: Text(
                                 community.nom,
-                                style: const TextStyle(
-                                  fontSize: 18,
+                                style: TextStyle(
+                                  fontSize: responsive.fontSize(16),
                                   fontWeight: FontWeight.w600,
                                 ),
-                                maxLines: 2,
+                                maxLines: responsive.isMobile ? 1 : 2,
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
                             RoleBadge(role: community.role),
                           ],
                         ),
-                        const SizedBox(height: 4),
+                        SizedBox(height: responsive.spacing(4)),
                         if (community.description.isNotEmpty)
                           Text(
                             community.description,
-                            style: AppTheme.bodyText2,
-                            maxLines: 2,
+                            style: AppTheme.bodyText2.copyWith(
+                              fontSize: responsive.fontSize(12),
+                            ),
+                            maxLines: responsive.isMobile ? 1 : 2,
                             overflow: TextOverflow.ellipsis,
                           ),
                       ],
@@ -256,39 +276,23 @@ class _CommunitySelectPageState extends State<CommunitySelectPage> {
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: responsive.spacing(16)),
               // Statistiques
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _buildStatItem(
-                    icon: Icons.people_outline,
-                    value: community.members_count.toString() ?? '?',
-                    label: 'Membres',
-                  ),
-                  _buildStatItem(
-                    icon: Icons.folder_outlined,
-                    value: community.projects_count.toString() ?? '?',
-                    label: 'Projets',
-                  ),
-                  _buildStatItem(
-                    icon: Icons.calendar_today,
-                    value: community.created_at != null
-                        ? _formatDate(community.created_at!)
-                        : 'N/A', // ✅ CORRIGÉ
-                    label: 'Créée',
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
+              _buildStatisticsRow(community, responsive),
+              SizedBox(height: responsive.spacing(16)),
               // Bouton d'action
-              PrimaryButton(
-                text: 'Ouvrir',
-                onPressed: () {
-                  _selectCommunity(community);
-                },
-                fullWidth: true,
-                icon: Icons.arrow_forward,
+              SizedBox(
+                height: responsive.value<double>(
+                  mobile: 40,
+                  tablet: 44,
+                  desktop: 48,
+                ),
+                child: PrimaryButton(
+                  text: 'Ouvrir',
+                  onPressed: () => _selectCommunity(community),
+                  fullWidth: true,
+                  icon: Icons.arrow_forward,
+                ),
               ),
             ],
           ),
@@ -297,33 +301,568 @@ class _CommunitySelectPageState extends State<CommunitySelectPage> {
     );
   }
 
-  Widget _buildStatItem({
-    required IconData icon,
-    required String value,
-    required String label,
-  }) {
-    return Column(
+  /// Ligne de statistiques responsive
+  Widget _buildStatisticsRow(
+    CommunityModel community,
+    ResponsiveHelper responsive,
+  ) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Icon(icon, size: 20, color: Colors.grey[600]),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+        Expanded(
+          child: _buildStatItem(
+            icon: Icons.people_outline,
+            value: community.members_count.toString(),
+            label: 'Membres',
+            responsive: responsive,
+          ),
         ),
-        Text(label, style: AppTheme.bodyText2.copyWith(fontSize: 12)),
+        Expanded(
+          child: _buildStatItem(
+            icon: Icons.folder_outlined,
+            value: community.projects_count.toString(),
+            label: 'Projets',
+            responsive: responsive,
+          ),
+        ),
+        Expanded(
+          child: _buildStatItem(
+            icon: Icons.calendar_today,
+            value: community.created_at != null
+                ? _formatDate(community.created_at!)
+                : 'N/A',
+            label: 'Créée',
+            responsive: responsive,
+          ),
+        ),
       ],
     );
   }
 
+  Widget _buildStatItem({
+    required IconData icon,
+    required String value,
+    required String label,
+    required ResponsiveHelper responsive,
+  }) {
+    return Column(
+      children: [
+        Icon(icon, size: responsive.iconSize(20), color: Colors.black87),
+        SizedBox(height: responsive.spacing(4)),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: responsive.fontSize(13),
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
+        ),
+
+        Text(
+          label,
+          style: AppTheme.bodyText2.copyWith(fontSize: responsive.fontSize(11)),
+        ),
+      ],
+    );
+  }
+
+  /// Boutons flottants responsive
+  Widget _buildFloatingActionButtons(ResponsiveHelper responsive) {
+    // Sur desktop, afficher horizontalement
+    if (responsive.isDesktop) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          FloatingActionButton.extended(
+            onPressed: () => Get.toNamed(AppRoutes.joinCommunity),
+            icon: Icon(Icons.key, size: responsive.iconSize(20)),
+            label: Text(
+              'Rejoindre',
+              style: TextStyle(fontSize: responsive.fontSize(14)),
+            ),
+            heroTag: 'join_community',
+          ),
+          SizedBox(width: responsive.spacing(16)),
+          FloatingActionButton.extended(
+            onPressed: () => Get.toNamed(AppRoutes.createCommunity),
+            icon: Icon(Icons.add, size: responsive.iconSize(20)),
+            label: Text(
+              'Créer',
+              style: TextStyle(fontSize: responsive.fontSize(14)),
+            ),
+            heroTag: 'create_community',
+          ),
+        ],
+      );
+    }
+
+    // Sur mobile/tablette, afficher verticalement
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        if (responsive.isTablet || !responsive.isMobileSmall)
+          FloatingActionButton.extended(
+            onPressed: () => Get.toNamed(AppRoutes.joinCommunity),
+            icon: Icon(Icons.key, size: responsive.iconSize(20)),
+            label: Text(
+              'Rejoindre',
+              style: TextStyle(fontSize: responsive.fontSize(13)),
+            ),
+            heroTag: 'join_community',
+          )
+        else
+          FloatingActionButton(
+            onPressed: () => Get.toNamed(AppRoutes.joinCommunity),
+            child: Icon(Icons.key, size: responsive.iconSize(24)),
+            heroTag: 'join_community',
+          ),
+        SizedBox(height: responsive.spacing(12)),
+        if (responsive.isTablet || !responsive.isMobileSmall)
+          FloatingActionButton.extended(
+            onPressed: () => Get.toNamed(AppRoutes.createCommunity),
+            icon: Icon(Icons.add, size: responsive.iconSize(20)),
+            label: Text(
+              'Créer',
+              style: TextStyle(fontSize: responsive.fontSize(13)),
+            ),
+            heroTag: 'create_community',
+          )
+        else
+          FloatingActionButton(
+            onPressed: () => Get.toNamed(AppRoutes.createCommunity),
+            child: Icon(Icons.add, size: responsive.iconSize(24)),
+            heroTag: 'create_community',
+          ),
+      ],
+    );
+  }
+
+  /// Barre inférieure responsive
+  Widget _buildBottomBar(ResponsiveHelper responsive) {
+    return Container(
+      padding: EdgeInsets.all(responsive.spacing(16)),
+      color: Theme.of(context).cardColor,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            '${_communityController.communities.length} communauté(s)',
+            style: AppTheme.bodyText2.copyWith(
+              fontSize: responsive.fontSize(13),
+            ),
+          ),
+          TextButton(
+            onPressed: () => _showHelpDialog(responsive),
+            child: Text(
+              'Aide',
+              style: TextStyle(fontSize: responsive.fontSize(13)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Dialog d'aide responsive
+  void _showHelpDialog(ResponsiveHelper responsive) {
+    Get.defaultDialog(
+      title: 'À propos des communautés',
+      titleStyle: TextStyle(fontSize: responsive.fontSize(18)),
+      content: Container(
+        constraints: BoxConstraints(
+          maxWidth: responsive.value<double>(
+            mobile: 300,
+            tablet: 400,
+            desktop: 500,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Les communautés sont des espaces de travail collaboratifs où vous pouvez :',
+              style: TextStyle(fontSize: responsive.fontSize(14)),
+            ),
+            SizedBox(height: responsive.spacing(8)),
+            _buildHelpItem('• Créer et gérer des projets', responsive),
+            _buildHelpItem('• Travailler avec d\'autres membres', responsive),
+            _buildHelpItem('• Suivre l\'avancement des tâches', responsive),
+            _buildHelpItem('• Communiquer en temps réel', responsive),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Get.back(),
+          child: Text(
+            'Fermer',
+            style: TextStyle(fontSize: responsive.fontSize(14)),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHelpItem(String text, ResponsiveHelper responsive) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: responsive.spacing(2)),
+      child: Text(text, style: TextStyle(fontSize: responsive.fontSize(13))),
+    );
+  }
+
+  /// Options de communauté responsive
+  void _showCommunityOptions(
+    CommunityModel community,
+    ResponsiveHelper responsive,
+  ) {
+    Get.bottomSheet(
+      Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(responsive.spacing(20)),
+            topRight: Radius.circular(responsive.spacing(20)),
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildOptionTile(
+              icon: Icons.info_outline,
+              title: 'Détails',
+              onTap: () {
+                Get.back();
+                _showCommunityDetails(community, responsive);
+              },
+              responsive: responsive,
+            ),
+            _buildOptionTile(
+              icon: Icons.content_copy,
+              title: 'Copier le code d\'invitation',
+              onTap: () {
+                Get.back();
+                _copyInviteCode(community);
+              },
+              responsive: responsive,
+            ),
+            if (community.role == 'ADMIN')
+              _buildOptionTile(
+                icon: Icons.edit,
+                title: 'Modifier',
+                onTap: () {
+                  Get.back();
+                  _editCommunity(community, responsive);
+                },
+                responsive: responsive,
+              ),
+            const Divider(),
+            _buildOptionTile(
+              icon: Icons.exit_to_app,
+              title: 'Quitter la communauté',
+              onTap: () {
+                Get.back();
+                _confirmLeaveCommunity(community, responsive);
+              },
+              responsive: responsive,
+              isDestructive: true,
+            ),
+            SizedBox(height: responsive.spacing(8)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOptionTile({
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+    required ResponsiveHelper responsive,
+    bool isDestructive = false,
+  }) {
+    return ListTile(
+      leading: Icon(
+        icon,
+        size: responsive.iconSize(24),
+        color: isDestructive ? Colors.red : null,
+      ),
+      title: Text(
+        title,
+        style: TextStyle(
+          fontSize: responsive.fontSize(14),
+          color: isDestructive ? Colors.red : null,
+        ),
+      ),
+      onTap: onTap,
+      contentPadding: EdgeInsets.symmetric(
+        horizontal: responsive.spacing(20),
+        vertical: responsive.spacing(4),
+      ),
+    );
+  }
+
+  // === Les autres méthodes restent identiques mais avec responsive passé en paramètre ===
+
+  void _showCommunityDetails(
+    CommunityModel community,
+    ResponsiveHelper responsive,
+  ) {
+    Get.dialog(
+      AlertDialog(
+        title: Text(
+          community.nom,
+          style: TextStyle(fontSize: responsive.fontSize(18)),
+        ),
+        content: Container(
+          constraints: BoxConstraints(
+            maxWidth: responsive.value<double>(
+              mobile: 300,
+              tablet: 400,
+              desktop: 500,
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Description :',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: responsive.fontSize(14),
+                ),
+              ),
+              SizedBox(height: responsive.spacing(4)),
+              Text(
+                community.description.isNotEmpty
+                    ? community.description
+                    : 'Aucune description',
+                style: TextStyle(fontSize: responsive.fontSize(13)),
+              ),
+              SizedBox(height: responsive.spacing(16)),
+              Text(
+                'Code d\'invitation :',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: responsive.fontSize(14),
+                ),
+              ),
+              SizedBox(height: responsive.spacing(4)),
+              SelectableText(
+                community.invite_code.toString(),
+                style: TextStyle(
+                  fontFamily: 'Courier',
+                  fontSize: responsive.fontSize(16),
+                  letterSpacing: 2,
+                ),
+              ),
+              SizedBox(height: responsive.spacing(16)),
+              Row(
+                children: [
+                  _buildDetailItem('Rôle', community.role, responsive),
+                  SizedBox(width: responsive.spacing(16)),
+                  _buildDetailItem(
+                    'Créée',
+                    community.created_at != null
+                        ? _formatDate(community.created_at!)
+                        : 'N/A',
+                    responsive,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: Text(
+              'Fermer',
+              style: TextStyle(fontSize: responsive.fontSize(14)),
+            ),
+          ),
+          PrimaryButton(
+            text: 'Ouvrir',
+            onPressed: () {
+              Get.back();
+              _selectCommunity(community);
+            },
+            fullWidth: false,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailItem(
+    String label,
+    String value,
+    ResponsiveHelper responsive,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: AppTheme.bodyText2.copyWith(fontSize: responsive.fontSize(12)),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: responsive.fontSize(14),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _editCommunity(CommunityModel community, ResponsiveHelper responsive) {
+    final nameController = TextEditingController(text: community.nom);
+    final descriptionController = TextEditingController(
+      text: community.description,
+    );
+
+    Get.dialog(
+      AlertDialog(
+        title: Text(
+          'Modifier la communauté',
+          style: TextStyle(fontSize: responsive.fontSize(18)),
+        ),
+        content: Container(
+          constraints: BoxConstraints(
+            maxWidth: responsive.value<double>(
+              mobile: 300,
+              tablet: 400,
+              desktop: 500,
+            ),
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  style: TextStyle(fontSize: responsive.fontSize(14)),
+                  decoration: InputDecoration(
+                    labelText: 'Nom de la communauté',
+                    labelStyle: TextStyle(fontSize: responsive.fontSize(14)),
+                    border: const OutlineInputBorder(),
+                    contentPadding: EdgeInsets.all(responsive.spacing(12)),
+                  ),
+                ),
+                SizedBox(height: responsive.spacing(16)),
+                TextField(
+                  controller: descriptionController,
+                  style: TextStyle(fontSize: responsive.fontSize(14)),
+                  decoration: InputDecoration(
+                    labelText: 'Description',
+                    labelStyle: TextStyle(fontSize: responsive.fontSize(14)),
+                    border: const OutlineInputBorder(),
+                    contentPadding: EdgeInsets.all(responsive.spacing(12)),
+                  ),
+                  maxLines: 3,
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: Text(
+              'Annuler',
+              style: TextStyle(fontSize: responsive.fontSize(14)),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Get.dialog(
+                const Center(child: CircularProgressIndicator()),
+                barrierDismissible: false,
+              );
+
+              final success = await _communityController.updateCommunity(
+                communityId: community.community_id,
+                nom: nameController.text.trim(),
+                description: descriptionController.text.trim(),
+              );
+
+              Get.back();
+              Get.back();
+
+              if (success) {
+                await _loadCommunities();
+                Get.snackbar(
+                  'Succès',
+                  'Communauté modifiée avec succès',
+                  backgroundColor: Colors.green,
+                  colorText: Colors.white,
+                );
+              } else {
+                Get.snackbar(
+                  'Erreur',
+                  'Impossible de modifier la communauté',
+                  backgroundColor: Colors.red,
+                  colorText: Colors.white,
+                );
+              }
+            },
+            child: Text(
+              'Enregistrer',
+              style: TextStyle(fontSize: responsive.fontSize(14)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmLeaveCommunity(
+    CommunityModel community,
+    ResponsiveHelper responsive,
+  ) {
+    Get.dialog(
+      AlertDialog(
+        title: Text(
+          'Quitter la communauté',
+          style: TextStyle(fontSize: responsive.fontSize(18)),
+        ),
+        content: Text(
+          'Êtes-vous sûr de vouloir quitter la communauté "${community.nom}" ?',
+          style: TextStyle(fontSize: responsive.fontSize(14)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: Text(
+              'Annuler',
+              style: TextStyle(fontSize: responsive.fontSize(14)),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              Get.back();
+              _leaveCommunity(community);
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: Text(
+              'Quitter',
+              style: TextStyle(fontSize: responsive.fontSize(14)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // === Méthodes de logique métier inchangées ===
+
   void _selectCommunity(CommunityModel community) async {
     try {
       _communityController.setCurrentCommunity(community);
-
-      // Charger les détails de la communauté
       await _communityController.refreshCurrentCommunity();
-
       Get.toNamed(AppRoutes.communityDashboard);
-
       Get.snackbar(
         'Communauté sélectionnée',
         'Bienvenue dans ${community.nom}',
@@ -340,138 +879,7 @@ class _CommunitySelectPageState extends State<CommunitySelectPage> {
     }
   }
 
-  void _showCommunityOptions(CommunityModel community) {
-    Get.bottomSheet(
-      Container(
-        decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(20),
-            topRight: Radius.circular(20),
-          ),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.info_outline),
-              title: const Text('Détails'),
-              onTap: () {
-                Get.back();
-                _showCommunityDetails(community);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.content_copy),
-              title: const Text('Copier le code d\'invitation'),
-              onTap: () {
-                Get.back();
-                _copyInviteCode(community);
-              },
-            ),
-            if (community.role == 'ADMIN')
-              ListTile(
-                leading: const Icon(Icons.edit),
-                title: const Text('Modifier'),
-                onTap: () {
-                  Get.back();
-                  _editCommunity(community);
-                },
-              ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.exit_to_app, color: Colors.red),
-              title: const Text(
-                'Quitter la communauté',
-                style: TextStyle(color: Colors.red),
-              ),
-              onTap: () {
-                Get.back();
-                _confirmLeaveCommunity(community);
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showCommunityDetails(CommunityModel community) {
-    Get.dialog(
-      AlertDialog(
-        title: Text(community.nom),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Description :',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              community.description.isNotEmpty
-                  ? community.description
-                  : 'Aucune description',
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Code d\'invitation :',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 4),
-            SelectableText(
-              community.invite_code.toString(),
-              style: const TextStyle(
-                fontFamily: 'Courier',
-                fontSize: 16,
-                letterSpacing: 2,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                _buildDetailItem('Rôle', community.role),
-                const SizedBox(width: 16),
-                _buildDetailItem(
-                  'Créée',
-                  community.created_at != null
-                      ? _formatDate(community.created_at!)
-                      : 'N/A', // ✅ CORRIGÉ
-                ),
-              ],
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Get.back(), child: const Text('Fermer')),
-          PrimaryButton(
-            text: 'Ouvrir',
-            onPressed: () {
-              Get.back();
-              _selectCommunity(community);
-            },
-            fullWidth: false,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDetailItem(String label, String value) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: AppTheme.bodyText2.copyWith(fontSize: 12)),
-        Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
-      ],
-    );
-  }
-
   void _copyInviteCode(CommunityModel community) {
-    // Copier dans le presse-papier
-    // clipboard.setData(ClipboardData(text: community.inviteCode));
-
     Get.snackbar(
       'Code copié',
       'Le code d\'invitation a été copié dans le presse-papier',
@@ -480,51 +888,27 @@ class _CommunitySelectPageState extends State<CommunitySelectPage> {
     );
   }
 
-  void _editCommunity(CommunityModel community) {
-    Get.defaultDialog(
-      title: 'Modifier la communauté',
-      content: const Column(
-        children: [
-          Text(
-            'Cette fonctionnalité sera disponible dans une prochaine mise à jour.',
-          ),
-        ],
-      ),
-      actions: [
-        TextButton(onPressed: () => Get.back(), child: const Text('Fermer')),
-      ],
+  Future<void> _leaveCommunity(CommunityModel community) async {
+    final success = await _communityController.leaveCommunity(
+      community.community_id,
     );
-  }
 
-  void _confirmLeaveCommunity(CommunityModel community) {
-    Get.dialog(
-      AlertDialog(
-        title: const Text('Quitter la communauté'),
-        content: Text(
-          'Êtes-vous sûr de vouloir quitter la communauté "${community.nom}" ?',
-        ),
-        actions: [
-          TextButton(onPressed: () => Get.back(), child: const Text('Annuler')),
-          TextButton(
-            onPressed: () {
-              Get.back();
-              _leaveCommunity(community);
-            },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Quitter'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _leaveCommunity(CommunityModel community) {
-    Get.snackbar(
-      'Fonctionnalité à venir',
-      'La fonction de quitter une communauté sera disponible bientôt.',
-      backgroundColor: Colors.orange,
-      colorText: Colors.white,
-    );
+    if (success) {
+      await _loadCommunities();
+      Get.snackbar(
+        'Succès',
+        'Vous avez quitté la communauté "${community.nom}"',
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
+    } else {
+      Get.snackbar(
+        'Erreur',
+        'Impossible de quitter la communauté',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
   }
 
   Color _getCommunityColor(int id) {

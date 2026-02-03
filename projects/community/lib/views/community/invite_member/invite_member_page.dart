@@ -1,5 +1,7 @@
 import 'package:community/app/themes/app_theme.dart';
 import 'package:community/controllers/community_controller.dart';
+import 'package:community/core/utils/responsive_helper.dart';
+import 'package:community/core/utils/widgets/responsive_builder.dart';
 import 'package:community/data/models/community_model.dart';
 import 'package:community/views/shared/widgets/button.dart';
 import 'package:flutter/material.dart';
@@ -83,189 +85,361 @@ class _InviteMemberPageState extends State<InviteMemberPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Initialiser le ResponsiveHelper
+    final responsive = ResponsiveHelper(context);
+
     return Scaffold(
-      appBar: AppBar(title: Text('Inviter - ${_community.nom}')),
+      appBar: AppBar(
+        title: Text(
+          'Inviter - ${_community.nom}',
+          style: TextStyle(fontSize: responsive.fontSize(18)),
+        ),
+      ),
       body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
+        child: ResponsiveContainer(
+          maxWidth: responsive.value<double>(
+            mobile: double.infinity,
+            tablet: 700,
+            desktop: 800,
+            largeDesktop: 900,
+          ),
+          padding: EdgeInsets.all(responsive.contentPadding),
           child: Column(
             children: [
-              // En-tête
-              Icon(
-                Icons.person_add_alt_1,
-                size: 80,
-                color: Theme.of(context).primaryColor,
+              // En-tête responsive
+              _buildHeader(responsive),
+
+              SizedBox(height: responsive.spacing(40)),
+
+              // Code d'invitation responsive
+              _buildInviteCodeCard(responsive),
+
+              SizedBox(height: responsive.spacing(32)),
+
+              // Instructions responsive
+              _buildInstructionsCard(responsive),
+
+              SizedBox(height: responsive.spacing(32)),
+
+              // Boutons d'action responsive
+              _buildActionButtons(responsive),
+
+              SizedBox(height: responsive.spacing(24)),
+
+              // Note de sécurité responsive
+              _buildSecurityNote(responsive),
+
+              SizedBox(height: responsive.spacing(24)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// En-tête avec icône et texte responsive
+  Widget _buildHeader(ResponsiveHelper responsive) {
+    return Column(
+      children: [
+        Icon(
+          Icons.person_add_alt_1,
+          size: responsive.iconSize(80),
+          color: Theme.of(context).primaryColor,
+        ),
+        SizedBox(height: responsive.spacing(16)),
+        Text(
+          'Inviter des membres',
+          style: AppTheme.headline2.copyWith(fontSize: responsive.fontSize(24)),
+        ),
+        SizedBox(height: responsive.spacing(8)),
+        Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: responsive.value<double>(
+              mobile: 0,
+              tablet: 20,
+              desktop: 40,
+            ),
+          ),
+          child: Text(
+            'Partagez ce code avec les personnes que vous souhaitez inviter dans votre communauté.',
+            style: AppTheme.bodyText2.copyWith(
+              fontSize: responsive.fontSize(14),
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Carte du code d'invitation responsive
+  Widget _buildInviteCodeCard(ResponsiveHelper responsive) {
+    return Container(
+      padding: EdgeInsets.all(responsive.spacing(24)),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(responsive.spacing(20)),
+        boxShadow: [AppTheme.cardShadow],
+        border: Border.all(
+          color: Theme.of(context).primaryColor.withOpacity(0.3),
+          width: responsive.value<double>(mobile: 1.5, tablet: 2, desktop: 2.5),
+        ),
+      ),
+      child: Column(
+        children: [
+          Text(
+            'Code d\'invitation',
+            style: AppTheme.bodyText2.copyWith(
+              fontSize: responsive.fontSize(14),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          SizedBox(height: responsive.spacing(16)),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: SelectableText(
+              _inviteCode,
+              style: TextStyle(
+                fontFamily: 'Courier',
+                fontSize: responsive.value<double>(
+                  mobile: 28,
+                  tablet: 32,
+                  desktop: 36,
+                  largeDesktop: 40,
+                ),
+                fontWeight: FontWeight.bold,
+                letterSpacing: responsive.value<double>(
+                  mobile: 3,
+                  tablet: 4,
+                  desktop: 5,
+                ),
+                color: Colors.blue,
               ),
-              const SizedBox(height: 16),
-              Text('Inviter des membres', style: AppTheme.headline2),
-              const SizedBox(height: 8),
-              Text(
-                'Partagez ce code avec les personnes que vous souhaitez inviter dans votre communauté.',
-                style: AppTheme.bodyText2,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 40),
-              // Code d'invitation
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).cardColor,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [AppTheme.cardShadow],
-                  border: Border.all(
-                    color: Theme.of(context).primaryColor.withOpacity(0.3),
-                    width: 2,
+              textAlign: TextAlign.center,
+            ),
+          ),
+          SizedBox(height: responsive.spacing(16)),
+          Text(
+            'Ce code est unique à votre communauté',
+            style: AppTheme.bodyText2.copyWith(
+              fontSize: responsive.fontSize(12),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Carte d'instructions responsive
+  Widget _buildInstructionsCard(ResponsiveHelper responsive) {
+    return Container(
+      padding: EdgeInsets.all(responsive.spacing(20)),
+      decoration: BoxDecoration(
+        color: Colors.blue.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(responsive.spacing(16)),
+        border: Border.all(color: Colors.blue.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Comment inviter des membres ?',
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: responsive.fontSize(15),
+            ),
+          ),
+          SizedBox(height: responsive.spacing(12)),
+          _buildInstructionItem(
+            '1. Partagez ce code avec les personnes à inviter',
+            responsive,
+          ),
+          SizedBox(height: responsive.spacing(8)),
+          _buildInstructionItem(
+            '2. Les membres doivent saisir ce code dans "Rejoindre une communauté"',
+            responsive,
+          ),
+          SizedBox(height: responsive.spacing(8)),
+          _buildInstructionItem(
+            '3. Ils auront accès à tous les projets de cette communauté',
+            responsive,
+          ),
+          SizedBox(height: responsive.spacing(16)),
+          Text(
+            'Note :',
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: responsive.fontSize(14),
+            ),
+          ),
+          SizedBox(height: responsive.spacing(8)),
+          _buildInstructionItem(
+            '• Seuls les ADMIN peuvent générer de nouveaux codes',
+            responsive,
+          ),
+          SizedBox(height: responsive.spacing(4)),
+          _buildInstructionItem(
+            '• Un code est valable jusqu\'à ce qu\'un nouveau soit généré',
+            responsive,
+          ),
+          SizedBox(height: responsive.spacing(4)),
+          _buildInstructionItem(
+            '• Vous pouvez générer un nouveau code à tout moment',
+            responsive,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInstructionItem(String text, ResponsiveHelper responsive) {
+    return Text(text, style: TextStyle(fontSize: responsive.fontSize(13)));
+  }
+
+  /// Boutons d'action responsive
+  Widget _buildActionButtons(ResponsiveHelper responsive) {
+    // Sur desktop/tablette large, afficher les boutons côte à côte
+    if (responsive.isDesktop ||
+        (responsive.isTablet && responsive.screenWidth > 600)) {
+      return Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: responsive.value<double>(
+                    mobile: 48,
+                    tablet: 52,
+                    desktop: 56,
+                  ),
+                  child: PrimaryButton(
+                    text: 'Copier le code',
+                    onPressed: _copyToClipboard,
+                    fullWidth: true,
+                    icon: Icons.content_copy,
                   ),
                 ),
-                child: Column(
-                  children: [
-                    Text(
-                      'Code d\'invitation',
-                      style: AppTheme.bodyText2.copyWith(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    SelectableText(
-                      _inviteCode,
-                      style: const TextStyle(
-                        fontFamily: 'Courier',
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 4,
-                        color: Colors.blue,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Ce code est unique à votre communauté',
-                      style: AppTheme.bodyText2.copyWith(fontSize: 12),
-                    ),
-                  ],
-                ),
               ),
-              const SizedBox(height: 32),
-              // Instructions
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.blue.withOpacity(0.3)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Comment inviter des membres ?',
-                      style: TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    const SizedBox(height: 12),
-                    const Text(
-                      '1. Partagez ce code avec les personnes à inviter',
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      '2. Les membres doivent saisir ce code dans "Rejoindre une communauté"',
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      '3. Ils auront accès à tous les projets de cette communauté',
-                    ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'Note :',
-                      style: TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      '• Seuls les ADMIN peuvent générer de nouveaux codes',
-                    ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      '• Un code est valable jusqu\'à ce qu\'un nouveau soit généré',
-                    ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      '• Vous pouvez générer un nouveau code à tout moment',
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 32),
-              // Boutons d'action
-              PrimaryButton(
-                text: 'Copier le code',
-                onPressed: _copyToClipboard,
-                fullWidth: true,
-                icon: Icons.content_copy,
-              ),
-              const SizedBox(height: 16),
-              SecondaryButton(
-                text: 'Partager',
-                onPressed: _shareInvite,
-                fullWidth: true,
-                icon: Icons.share,
-              ),
-              const SizedBox(height: 16),
-              if (_community.role == 'ADMIN')
-                OutlinedButton(
-                  onPressed: _isLoading ? null : _generateNewCode,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.red,
-                    side: const BorderSide(color: Colors.red),
-                    minimumSize: const Size(double.infinity, 50),
+              SizedBox(width: responsive.spacing(16)),
+              Expanded(
+                child: SizedBox(
+                  height: responsive.value<double>(
+                    mobile: 48,
+                    tablet: 52,
+                    desktop: 56,
                   ),
-                  child: _isLoading
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Générer un nouveau code'),
-                ),
-              const SizedBox(height: 24),
-              // Note de sécurité
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.orange.withOpacity(0.3)),
-                ),
-                child: const Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.security_outlined,
-                          size: 16,
-                          color: Colors.orange,
-                        ),
-                        SizedBox(width: 8),
-                        Text(
-                          'Sécurité',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            color: Colors.orange,
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 8),
-                    Text(
-                      'Ne partagez ce code qu\'avec des personnes de confiance. Toute personne ayant ce code peut rejoindre votre communauté.',
-                      style: TextStyle(fontSize: 14),
-                    ),
-                  ],
+                  child: SecondaryButton(
+                    text: 'Partager',
+                    onPressed: _shareInvite,
+                    fullWidth: true,
+                    icon: Icons.share,
+                  ),
                 ),
               ),
             ],
           ),
+          if (_community.role == 'ADMIN') ...[
+            SizedBox(height: responsive.spacing(16)),
+            _buildGenerateButton(responsive),
+          ],
+        ],
+      );
+    }
+
+    // Sur mobile, afficher les boutons en colonne
+    return Column(
+      children: [
+        SizedBox(
+          height: responsive.value<double>(mobile: 48, tablet: 52),
+          child: PrimaryButton(
+            text: 'Copier le code',
+            onPressed: _copyToClipboard,
+            fullWidth: true,
+            icon: Icons.content_copy,
+          ),
         ),
+        SizedBox(height: responsive.spacing(16)),
+        SizedBox(
+          height: responsive.value<double>(mobile: 48, tablet: 52),
+          child: SecondaryButton(
+            text: 'Partager',
+            onPressed: _shareInvite,
+            fullWidth: true,
+            icon: Icons.share,
+          ),
+        ),
+        if (_community.role == 'ADMIN') ...[
+          SizedBox(height: responsive.spacing(16)),
+          _buildGenerateButton(responsive),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildGenerateButton(ResponsiveHelper responsive) {
+    return SizedBox(
+      height: responsive.value<double>(mobile: 48, tablet: 52, desktop: 56),
+      width: double.infinity,
+      child: OutlinedButton(
+        onPressed: _isLoading ? null : _generateNewCode,
+        style: OutlinedButton.styleFrom(
+          foregroundColor: Colors.red,
+          side: const BorderSide(color: Colors.red),
+          padding: EdgeInsets.symmetric(vertical: responsive.spacing(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(responsive.spacing(8)),
+          ),
+        ),
+        child: _isLoading
+            ? SizedBox(
+                width: responsive.iconSize(20),
+                height: responsive.iconSize(20),
+                child: const CircularProgressIndicator(strokeWidth: 2),
+              )
+            : Text(
+                'Générer un nouveau code',
+                style: TextStyle(fontSize: responsive.fontSize(14)),
+              ),
+      ),
+    );
+  }
+
+  /// Note de sécurité responsive
+  Widget _buildSecurityNote(ResponsiveHelper responsive) {
+    return Container(
+      padding: EdgeInsets.all(responsive.spacing(16)),
+      decoration: BoxDecoration(
+        color: Colors.orange.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(responsive.spacing(12)),
+        border: Border.all(color: Colors.orange.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.security_outlined,
+                size: responsive.iconSize(16),
+                color: Colors.orange,
+              ),
+              SizedBox(width: responsive.spacing(8)),
+              Text(
+                'Sécurité',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: responsive.fontSize(14),
+                  color: Colors.orange,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: responsive.spacing(8)),
+          Text(
+            'Ne partagez ce code qu\'avec des personnes de confiance. Toute personne ayant ce code peut rejoindre votre communauté.',
+            style: TextStyle(fontSize: responsive.fontSize(13)),
+          ),
+        ],
       ),
     );
   }

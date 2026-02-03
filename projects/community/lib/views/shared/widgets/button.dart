@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:flutter/material.dart';
+
 class PrimaryButton extends StatelessWidget {
   final String text;
   final VoidCallback onPressed;
@@ -7,6 +9,7 @@ class PrimaryButton extends StatelessWidget {
   final bool fullWidth;
   final IconData? icon;
   final Color? backgroundColor;
+  final TextStyle? style;
 
   const PrimaryButton({
     super.key,
@@ -16,20 +19,33 @@ class PrimaryButton extends StatelessWidget {
     this.fullWidth = true,
     this.icon,
     this.backgroundColor,
+    this.style,
   });
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    // Font/spacing adaptatif selon largueur d'écran
+    final double fontSize = screenWidth < 360 ? 13 : 14;
+    final double paddingVertical = screenWidth < 360 ? 10 : 10;
+
     return SizedBox(
       width: fullWidth ? double.infinity : null,
       child: ElevatedButton(
         onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: backgroundColor ?? Theme.of(context).primaryColor,
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+          padding: EdgeInsets.symmetric(
+            vertical: paddingVertical,
+            horizontal: 24,
+          ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
+          elevation: 8,
+          minimumSize: const Size(0, 40),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         ),
         child: isLoading
             ? const SizedBox(
@@ -42,17 +58,25 @@ class PrimaryButton extends StatelessWidget {
               )
             : Row(
                 mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min, // évite débordement
                 children: [
                   if (icon != null) ...[
-                    Icon(icon, size: 20),
+                    Icon(icon, size: 18, color: Colors.white),
                     const SizedBox(width: 8),
                   ],
-                  Text(
-                    text,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
+                  Flexible(
+                    child: Text(
+                      text,
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style:
+                          style ??
+                          TextStyle(
+                            fontSize: fontSize,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
                     ),
                   ),
                 ],

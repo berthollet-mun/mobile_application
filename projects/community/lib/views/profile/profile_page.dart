@@ -2,6 +2,8 @@ import 'package:community/app/routes/app_routes.dart';
 import 'package:community/app/themes/app_theme.dart';
 import 'package:community/controllers/auth_controller.dart';
 import 'package:community/controllers/theme_controller.dart';
+import 'package:community/core/utils/responsive_helper.dart';
+import 'package:community/core/utils/widgets/responsive_builder.dart';
 import 'package:community/data/models/user_model.dart';
 import 'package:community/views/shared/widgets/button.dart';
 import 'package:community/views/shared/widgets/loading_widget.dart';
@@ -31,14 +33,19 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    final responsive = ResponsiveHelper(context);
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Profil'),
+        title: Text(
+          'Profil',
+          style: TextStyle(fontSize: responsive.fontSize(18)),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.settings),
+            icon: Icon(Icons.settings, size: responsive.iconSize(24)),
             onPressed: () {
-              _showSettings();
+              _showSettings(responsive);
             },
             tooltip: 'Paramètres',
           ),
@@ -56,13 +63,17 @@ class _ProfilePageState extends State<ProfilePage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.error_outline, size: 64, color: Colors.red),
-                const SizedBox(height: 16),
-                const Text(
-                  'Impossible de charger le profil',
-                  style: TextStyle(fontSize: 18),
+                Icon(
+                  Icons.error_outline,
+                  size: responsive.iconSize(64),
+                  color: Colors.red,
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: responsive.spacing(16)),
+                Text(
+                  'Impossible de charger le profil',
+                  style: TextStyle(fontSize: responsive.fontSize(18)),
+                ),
+                SizedBox(height: responsive.spacing(16)),
                 PrimaryButton(
                   text: 'Réessayer',
                   onPressed: _loadProfile,
@@ -74,28 +85,62 @@ class _ProfilePageState extends State<ProfilePage> {
         }
 
         return SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
+          child: ResponsiveContainer(
+            maxWidth: responsive.value<double>(
+              mobile: double.infinity,
+              tablet: 700,
+              desktop: 900,
+              largeDesktop: 1000,
+            ),
+            padding: EdgeInsets.all(responsive.contentPadding),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // En-tête du profil
-                _buildProfileHeader(user),
-                const SizedBox(height: 32),
-                // Informations personnelles
-                _buildPersonalInfo(user),
-                const SizedBox(height: 32),
-                // Statistiques
-                _buildStatistics(),
-                const SizedBox(height: 32),
-                // Préférences
-                _buildPreferences(),
-                const SizedBox(height: 32),
-                // Actions
-                _buildActions(),
-                const SizedBox(height: 32),
-                // Version
-                _buildVersionInfo(),
+                _buildProfileHeader(user, responsive),
+                SizedBox(height: responsive.spacing(32)),
+
+                // Sur desktop, afficher en grille
+                if (responsive.isDesktop) ...[
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        flex: 1,
+                        child: Column(
+                          children: [
+                            _buildPersonalInfo(user, responsive),
+                            SizedBox(height: responsive.spacing(24)),
+                            _buildPreferences(responsive),
+                          ],
+                        ),
+                      ),
+                      SizedBox(width: responsive.spacing(24)),
+                      Expanded(
+                        flex: 1,
+                        child: Column(
+                          children: [
+                            _buildStatistics(responsive),
+                            SizedBox(height: responsive.spacing(24)),
+                            _buildActions(responsive),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ] else ...[
+                  // Sur mobile/tablette, afficher en colonne
+                  _buildPersonalInfo(user, responsive),
+                  SizedBox(height: responsive.spacing(32)),
+                  _buildStatistics(responsive),
+                  SizedBox(height: responsive.spacing(32)),
+                  _buildPreferences(responsive),
+                  SizedBox(height: responsive.spacing(32)),
+                  _buildActions(responsive),
+                ],
+
+                SizedBox(height: responsive.spacing(32)),
+                _buildVersionInfo(responsive),
               ],
             ),
           ),
@@ -104,68 +149,142 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildProfileHeader(UserModel user) {
+  Widget _buildProfileHeader(UserModel user, ResponsiveHelper responsive) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(responsive.spacing(24)),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(responsive.spacing(20)),
         boxShadow: [AppTheme.cardShadow],
       ),
-      child: Column(
-        children: [
-          // Avatar
-          Container(
-            width: 100,
-            height: 100,
-            decoration: BoxDecoration(
-              color: _getUserColor(user),
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: Theme.of(context).primaryColor,
-                width: 3,
-              ),
-            ),
-            child: Center(
-              child: Text(
-                _getUserInitials(user),
-                style: const TextStyle(
-                  fontSize: 36,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
+      child: responsive.isDesktop
+          ? Row(
+              children: [
+                // Avatar
+                _buildAvatar(user, responsive),
+                SizedBox(width: responsive.spacing(32)),
+                // Informations
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        user.fullName,
+                        style: AppTheme.headline1.copyWith(
+                          fontSize: responsive.fontSize(24),
+                        ),
+                      ),
+                      SizedBox(height: responsive.spacing(4)),
+                      Text(
+                        user.email,
+                        style: AppTheme.bodyText2.copyWith(
+                          fontSize: responsive.fontSize(16),
+                        ),
+                      ),
+                      SizedBox(height: responsive.spacing(16)),
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: responsive.spacing(12),
+                          vertical: responsive.spacing(6),
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[100],
+                          borderRadius: BorderRadius.circular(
+                            responsive.spacing(20),
+                          ),
+                        ),
+                        child: Text(
+                          'Membre depuis ${_formatDate(user.created_at)}',
+                          style: AppTheme.bodyText2.copyWith(
+                            fontSize: responsive.fontSize(14),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
+              ],
+            )
+          : Column(
+              children: [
+                // Avatar
+                _buildAvatar(user, responsive),
+                SizedBox(height: responsive.spacing(16)),
+                // Nom et email
+                Text(
+                  user.fullName,
+                  style: AppTheme.headline1.copyWith(
+                    fontSize: responsive.fontSize(22),
+                  ),
+                ),
+                SizedBox(height: responsive.spacing(4)),
+                Text(
+                  user.email,
+                  style: AppTheme.bodyText2.copyWith(
+                    fontSize: responsive.fontSize(15),
+                  ),
+                ),
+                SizedBox(height: responsive.spacing(16)),
+                // Date d'inscription
+                Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: responsive.spacing(12),
+                    vertical: responsive.spacing(6),
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(responsive.spacing(20)),
+                  ),
+                  child: Text(
+                    'Membre depuis ${_formatDate(user.created_at)}',
+                    style: AppTheme.bodyText2.copyWith(
+                      fontSize: responsive.fontSize(13),
+                    ),
+                  ),
+                ),
+              ],
             ),
+    );
+  }
+
+  Widget _buildAvatar(UserModel user, ResponsiveHelper responsive) {
+    final size = responsive.value<double>(
+      mobile: 80,
+      tablet: 90,
+      desktop: 100,
+      largeDesktop: 110,
+    );
+
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: _getUserColor(user),
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: Theme.of(context).primaryColor,
+          width: responsive.value<double>(mobile: 2.5, tablet: 3, desktop: 3.5),
+        ),
+      ),
+      child: Center(
+        child: Text(
+          _getUserInitials(user),
+          style: TextStyle(
+            fontSize: responsive.fontSize(32),
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
           ),
-          const SizedBox(height: 16),
-          // Nom et email
-          Text(user.fullName, style: AppTheme.headline1.copyWith(fontSize: 24)),
-          const SizedBox(height: 4),
-          Text(user.email, style: AppTheme.bodyText2.copyWith(fontSize: 16)),
-          const SizedBox(height: 16),
-          // Date d'inscription
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.grey[100],
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              'Membre depuis ${_formatDate(user.created_at)}',
-              style: AppTheme.bodyText2.copyWith(fontSize: 14),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildPersonalInfo(UserModel user) {
+  Widget _buildPersonalInfo(UserModel user, ResponsiveHelper responsive) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(responsive.spacing(20)),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(responsive.spacing(16)),
         boxShadow: [AppTheme.cardShadow],
       ),
       child: Column(
@@ -173,31 +292,36 @@ class _ProfilePageState extends State<ProfilePage> {
         children: [
           Text(
             'Informations personnelles',
-            style: AppTheme.headline2.copyWith(fontSize: 18),
+            style: AppTheme.headline2.copyWith(
+              fontSize: responsive.fontSize(18),
+            ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: responsive.spacing(16)),
           _buildInfoItem(
             icon: Icons.person_outline,
             label: 'Prénom',
             value: user.prenom,
+            responsive: responsive,
           ),
           const Divider(),
           _buildInfoItem(
             icon: Icons.person_outline,
             label: 'Nom',
             value: user.nom,
+            responsive: responsive,
           ),
           const Divider(),
           _buildInfoItem(
             icon: Icons.email_outlined,
             label: 'Email',
             value: user.email,
+            responsive: responsive,
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: responsive.spacing(16)),
           SecondaryButton(
             text: 'Modifier le profil',
             onPressed: () {
-              _editProfile(user);
+              _editProfile(user, responsive);
             },
             fullWidth: true,
             icon: Icons.edit,
@@ -211,25 +335,33 @@ class _ProfilePageState extends State<ProfilePage> {
     required IconData icon,
     required String label,
     required String value,
+    required ResponsiveHelper responsive,
   }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      padding: EdgeInsets.symmetric(vertical: responsive.spacing(12)),
       child: Row(
         children: [
-          Icon(icon, size: 20, color: Colors.grey[600]),
-          const SizedBox(width: 16),
+          Icon(icon, size: responsive.iconSize(20), color: Colors.grey[600]),
+          SizedBox(width: responsive.spacing(16)),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: AppTheme.bodyText2.copyWith(fontSize: 12)),
-                const SizedBox(height: 4),
+                Text(
+                  label,
+                  style: AppTheme.bodyText2.copyWith(
+                    fontSize: responsive.fontSize(12),
+                  ),
+                ),
+                SizedBox(height: responsive.spacing(4)),
                 Text(
                   value,
-                  style: const TextStyle(
-                    fontSize: 16,
+                  style: TextStyle(
+                    fontSize: responsive.fontSize(15),
                     fontWeight: FontWeight.w500,
                   ),
+                  maxLines: responsive.isMobile ? 1 : 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
@@ -239,12 +371,12 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildStatistics() {
+  Widget _buildStatistics(ResponsiveHelper responsive) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(responsive.spacing(20)),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(responsive.spacing(16)),
         boxShadow: [AppTheme.cardShadow],
       ),
       child: Column(
@@ -252,40 +384,56 @@ class _ProfilePageState extends State<ProfilePage> {
         children: [
           Text(
             'Statistiques',
-            style: AppTheme.headline2.copyWith(fontSize: 18),
+            style: AppTheme.headline2.copyWith(
+              fontSize: responsive.fontSize(18),
+            ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: responsive.spacing(16)),
           GridView.count(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: 2,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            childAspectRatio: 1.5,
+            crossAxisCount: responsive.value<int>(
+              mobile: 2,
+              tablet: 2,
+              desktop: 2,
+              largeDesktop: 2,
+            ),
+            crossAxisSpacing: responsive.spacing(16),
+            mainAxisSpacing: responsive.spacing(16),
+            childAspectRatio: responsive.value<double>(
+              mobile: 1.2,
+              tablet: 1.4,
+              desktop: 1.5,
+              largeDesktop: 1.6,
+            ),
             children: [
               _buildStatCard(
                 icon: Icons.groups_outlined,
                 value: '0',
                 label: 'Communautés',
                 color: Colors.blue,
+                responsive: responsive,
               ),
               _buildStatCard(
                 icon: Icons.folder_outlined,
                 value: '0',
                 label: 'Projets',
                 color: Colors.green,
+                responsive: responsive,
               ),
               _buildStatCard(
                 icon: Icons.task_outlined,
                 value: '0',
                 label: 'Tâches créées',
                 color: Colors.orange,
+                responsive: responsive,
               ),
               _buildStatCard(
                 icon: Icons.check_circle_outline,
                 value: '0',
                 label: 'Tâches terminées',
                 color: Colors.purple,
+                responsive: responsive,
               ),
             ],
           ),
@@ -299,31 +447,34 @@ class _ProfilePageState extends State<ProfilePage> {
     required String value,
     required String label,
     required Color color,
+    required ResponsiveHelper responsive,
   }) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.all(responsive.spacing(12)),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(responsive.spacing(12)),
         border: Border.all(color: color.withOpacity(0.3)),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 24, color: color),
-          const SizedBox(height: 8),
+          Icon(icon, size: responsive.iconSize(24), color: color),
+          SizedBox(height: responsive.spacing(8)),
           Text(
             value,
             style: TextStyle(
-              fontSize: 18,
+              fontSize: responsive.fontSize(18),
               fontWeight: FontWeight.bold,
               color: color,
             ),
           ),
-          const SizedBox(height: 4),
+          SizedBox(height: responsive.spacing(4)),
           Text(
             label,
-            style: AppTheme.bodyText2.copyWith(fontSize: 11),
+            style: AppTheme.bodyText2.copyWith(
+              fontSize: responsive.fontSize(11),
+            ),
             textAlign: TextAlign.center,
           ),
         ],
@@ -331,23 +482,34 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildPreferences() {
+  Widget _buildPreferences(ResponsiveHelper responsive) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(responsive.spacing(20)),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(responsive.spacing(16)),
         boxShadow: [AppTheme.cardShadow],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Préférences', style: AppTheme.headline2.copyWith(fontSize: 18)),
-          const SizedBox(height: 16),
+          Text(
+            'Préférences',
+            style: AppTheme.headline2.copyWith(
+              fontSize: responsive.fontSize(18),
+            ),
+          ),
+          SizedBox(height: responsive.spacing(16)),
           Obx(() {
             return SwitchListTile(
-              title: const Text('Mode sombre'),
-              subtitle: const Text('Activer le thème sombre'),
+              title: Text(
+                'Mode sombre',
+                style: TextStyle(fontSize: responsive.fontSize(15)),
+              ),
+              subtitle: Text(
+                'Activer le thème sombre',
+                style: TextStyle(fontSize: responsive.fontSize(13)),
+              ),
               value: _themeController.isDarkMode.value,
               onChanged: (value) {
                 _themeController.switchTheme();
@@ -356,13 +518,20 @@ class _ProfilePageState extends State<ProfilePage> {
                 _themeController.isDarkMode.value
                     ? Icons.dark_mode
                     : Icons.light_mode,
+                size: responsive.iconSize(24),
               ),
             );
           }),
           const Divider(),
           SwitchListTile(
-            title: const Text('Notifications'),
-            subtitle: const Text('Recevoir les notifications push'),
+            title: Text(
+              'Notifications',
+              style: TextStyle(fontSize: responsive.fontSize(15)),
+            ),
+            subtitle: Text(
+              'Recevoir les notifications push',
+              style: TextStyle(fontSize: responsive.fontSize(13)),
+            ),
             value: true,
             onChanged: (value) {
               Get.snackbar(
@@ -372,14 +541,29 @@ class _ProfilePageState extends State<ProfilePage> {
                 colorText: Colors.white,
               );
             },
-            secondary: const Icon(Icons.notifications_active_outlined),
+            secondary: Icon(
+              Icons.notifications_active_outlined,
+              size: responsive.iconSize(24),
+            ),
           ),
           const Divider(),
           ListTile(
-            leading: const Icon(Icons.language_outlined),
-            title: const Text('Langue'),
-            subtitle: const Text('Français'),
-            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+            leading: Icon(
+              Icons.language_outlined,
+              size: responsive.iconSize(24),
+            ),
+            title: Text(
+              'Langue',
+              style: TextStyle(fontSize: responsive.fontSize(15)),
+            ),
+            subtitle: Text(
+              'Français',
+              style: TextStyle(fontSize: responsive.fontSize(13)),
+            ),
+            trailing: Icon(
+              Icons.arrow_forward_ios,
+              size: responsive.iconSize(16),
+            ),
             onTap: () {
               Get.snackbar(
                 'Langue',
@@ -394,23 +578,28 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildActions() {
+  Widget _buildActions(ResponsiveHelper responsive) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(responsive.spacing(20)),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(responsive.spacing(16)),
         boxShadow: [AppTheme.cardShadow],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Actions', style: AppTheme.headline2.copyWith(fontSize: 18)),
-          const SizedBox(height: 16),
-          ListTile(
-            leading: const Icon(Icons.help_outline, color: Colors.blue),
-            title: const Text('Centre d\'aide'),
-            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+          Text(
+            'Actions',
+            style: AppTheme.headline2.copyWith(
+              fontSize: responsive.fontSize(18),
+            ),
+          ),
+          SizedBox(height: responsive.spacing(16)),
+          _buildActionTile(
+            icon: Icons.help_outline,
+            title: 'Centre d\'aide',
+            color: Colors.blue,
             onTap: () {
               Get.snackbar(
                 'Centre d\'aide',
@@ -419,99 +608,133 @@ class _ProfilePageState extends State<ProfilePage> {
                 colorText: Colors.white,
               );
             },
+            responsive: responsive,
+          ),
+          const Divider(),
+          _buildActionTile(
+            icon: Icons.description_outlined,
+            title: 'Conditions d\'utilisation',
+            color: Colors.green,
+            onTap: () {
+              _showDialog(
+                'Conditions d\'utilisation',
+                'En utilisant MarPro+, vous acceptez nos conditions d\'utilisation.',
+                responsive,
+              );
+            },
+            responsive: responsive,
+          ),
+          const Divider(),
+          _buildActionTile(
+            icon: Icons.security_outlined,
+            title: 'Politique de confidentialité',
+            color: Colors.purple,
+            onTap: () {
+              _showDialog(
+                'Politique de confidentialité',
+                'Nous respectons votre vie privée. Vos données sont sécurisées.',
+                responsive,
+              );
+            },
+            responsive: responsive,
           ),
           const Divider(),
           ListTile(
-            leading: const Icon(
-              Icons.description_outlined,
-              color: Colors.green,
+            leading: Icon(
+              Icons.logout,
+              color: Colors.red,
+              size: responsive.iconSize(24),
             ),
-            title: const Text('Conditions d\'utilisation'),
-            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-            onTap: () {
-              Get.defaultDialog(
-                title: 'Conditions d\'utilisation',
-                content: const Column(
-                  children: [
-                    Text(
-                      'En utilisant MarPro+, vous acceptez nos conditions d\'utilisation.',
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-          const Divider(),
-          ListTile(
-            leading: const Icon(Icons.security_outlined, color: Colors.purple),
-            title: const Text('Politique de confidentialité'),
-            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-            onTap: () {
-              Get.defaultDialog(
-                title: 'Politique de confidentialité',
-                content: const Column(
-                  children: [
-                    Text(
-                      'Nous respectons votre vie privée. Vos données sont sécurisées.',
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-          const Divider(),
-          ListTile(
-            leading: const Icon(Icons.logout, color: Colors.red),
-            title: const Text(
+            title: Text(
               'Déconnexion',
-              style: TextStyle(color: Colors.red),
+              style: TextStyle(
+                color: Colors.red,
+                fontSize: responsive.fontSize(15),
+              ),
             ),
-            onTap: _confirmLogout,
+            onTap: () => _confirmLogout(responsive),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildVersionInfo() {
+  Widget _buildActionTile({
+    required IconData icon,
+    required String title,
+    required Color color,
+    required VoidCallback onTap,
+    required ResponsiveHelper responsive,
+  }) {
+    return ListTile(
+      leading: Icon(icon, color: color, size: responsive.iconSize(24)),
+      title: Text(title, style: TextStyle(fontSize: responsive.fontSize(15))),
+      trailing: Icon(Icons.arrow_forward_ios, size: responsive.iconSize(16)),
+      onTap: onTap,
+    );
+  }
+
+  Widget _buildVersionInfo(ResponsiveHelper responsive) {
     return Center(
       child: Column(
         children: [
-          Text('MarPro+ v1.0.0', style: AppTheme.bodyText2),
-          const SizedBox(height: 4),
+          Text(
+            'MarPro+ v1.0.0',
+            style: AppTheme.bodyText2.copyWith(
+              fontSize: responsive.fontSize(14),
+            ),
+          ),
+          SizedBox(height: responsive.spacing(4)),
           Text(
             '© 2024 MarPro+. Tous droits réservés.',
-            style: AppTheme.bodyText2.copyWith(fontSize: 12),
+            style: AppTheme.bodyText2.copyWith(
+              fontSize: responsive.fontSize(12),
+            ),
           ),
         ],
       ),
     );
   }
 
-  void _showSettings() {
+  void _showSettings(ResponsiveHelper responsive) {
     Get.bottomSheet(
       Container(
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(20),
-            topRight: Radius.circular(20),
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(responsive.spacing(20)),
+            topRight: Radius.circular(responsive.spacing(20)),
           ),
         ),
+        padding: EdgeInsets.only(bottom: responsive.spacing(16)),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ListTile(
-              leading: const Icon(Icons.edit),
-              title: const Text('Modifier le profil'),
+            Container(
+              margin: EdgeInsets.symmetric(vertical: responsive.spacing(12)),
+              width: responsive.value<double>(
+                mobile: 40,
+                tablet: 50,
+                desktop: 60,
+              ),
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            _buildSettingsTile(
+              icon: Icons.edit,
+              title: 'Modifier le profil',
               onTap: () {
                 Get.back();
-                _editProfile(_authController.user.value!);
+                _editProfile(_authController.user.value!, responsive);
               },
+              responsive: responsive,
             ),
-            ListTile(
-              leading: const Icon(Icons.notifications),
-              title: const Text('Notifications'),
+            _buildSettingsTile(
+              icon: Icons.notifications,
+              title: 'Notifications',
               onTap: () {
                 Get.back();
                 Get.snackbar(
@@ -521,18 +744,20 @@ class _ProfilePageState extends State<ProfilePage> {
                   colorText: Colors.white,
                 );
               },
+              responsive: responsive,
             ),
-            ListTile(
-              leading: const Icon(Icons.security),
-              title: const Text('Sécurité'),
+            _buildSettingsTile(
+              icon: Icons.security,
+              title: 'Sécurité',
               onTap: () {
                 Get.back();
-                _showSecuritySettings();
+                _showSecuritySettings(responsive);
               },
+              responsive: responsive,
             ),
-            ListTile(
-              leading: const Icon(Icons.help_outline),
-              title: const Text('Aide et support'),
+            _buildSettingsTile(
+              icon: Icons.help_outline,
+              title: 'Aide et support',
               onTap: () {
                 Get.back();
                 Get.snackbar(
@@ -542,15 +767,17 @@ class _ProfilePageState extends State<ProfilePage> {
                   colorText: Colors.white,
                 );
               },
+              responsive: responsive,
             ),
             const Divider(),
-            ListTile(
-              leading: const Icon(Icons.info_outline),
-              title: const Text('À propos'),
+            _buildSettingsTile(
+              icon: Icons.info_outline,
+              title: 'À propos',
               onTap: () {
                 Get.back();
-                _showAbout();
+                _showAbout(responsive);
               },
+              responsive: responsive,
             ),
           ],
         ),
@@ -558,83 +785,199 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  void _editProfile(UserModel user) {
+  Widget _buildSettingsTile({
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+    required ResponsiveHelper responsive,
+  }) {
+    return ListTile(
+      leading: Icon(icon, size: responsive.iconSize(24)),
+      title: Text(title, style: TextStyle(fontSize: responsive.fontSize(15))),
+      onTap: onTap,
+      contentPadding: EdgeInsets.symmetric(
+        horizontal: responsive.spacing(20),
+        vertical: responsive.spacing(4),
+      ),
+    );
+  }
+
+  void _showDialog(String title, String content, ResponsiveHelper responsive) {
+    Get.defaultDialog(
+      title: title,
+      titleStyle: TextStyle(fontSize: responsive.fontSize(18)),
+      content: Container(
+        constraints: BoxConstraints(
+          maxWidth: responsive.value<double>(
+            mobile: 300,
+            tablet: 400,
+            desktop: 500,
+          ),
+        ),
+        child: Text(
+          content,
+          style: TextStyle(fontSize: responsive.fontSize(14)),
+        ),
+      ),
+    );
+  }
+
+  void _editProfile(UserModel user, ResponsiveHelper responsive) {
     Get.defaultDialog(
       title: 'Modifier le profil',
-      content: const Column(
-        children: [
-          Text(
-            'Cette fonctionnalité sera disponible dans une prochaine mise à jour.',
+      titleStyle: TextStyle(fontSize: responsive.fontSize(18)),
+      content: Container(
+        constraints: BoxConstraints(
+          maxWidth: responsive.value<double>(
+            mobile: 300,
+            tablet: 400,
+            desktop: 500,
           ),
-        ],
-      ),
-      actions: [
-        TextButton(onPressed: () => Get.back(), child: const Text('Fermer')),
-      ],
-    );
-  }
-
-  void _showSecuritySettings() {
-    Get.defaultDialog(
-      title: 'Sécurité',
-      content: const Column(
-        children: [
-          Text('Modifier le mot de passe'),
-          SizedBox(height: 16),
-          Text(
-            'Cette fonctionnalité sera disponible dans une prochaine mise à jour.',
-          ),
-        ],
-      ),
-      actions: [
-        TextButton(onPressed: () => Get.back(), child: const Text('Fermer')),
-      ],
-    );
-  }
-
-  void _showAbout() {
-    Get.dialog(
-      AlertDialog(
-        title: const Text('À propos de MarPro+'),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+        ),
+        child: Column(
           children: [
             Text(
-              'MarPro+ est une application de gestion collaborative de projets.',
+              'Cette fonctionnalité sera disponible dans une prochaine mise à jour.',
+              style: TextStyle(fontSize: responsive.fontSize(14)),
             ),
-            SizedBox(height: 16),
-            Text('Version: 1.0.0'),
-            SizedBox(height: 8),
-            Text('Développé avec ❤️'),
           ],
         ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Get.back(),
+          child: Text(
+            'Fermer',
+            style: TextStyle(fontSize: responsive.fontSize(14)),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showSecuritySettings(ResponsiveHelper responsive) {
+    Get.defaultDialog(
+      title: 'Sécurité',
+      titleStyle: TextStyle(fontSize: responsive.fontSize(18)),
+      content: Container(
+        constraints: BoxConstraints(
+          maxWidth: responsive.value<double>(
+            mobile: 300,
+            tablet: 400,
+            desktop: 500,
+          ),
+        ),
+        child: Column(
+          children: [
+            Text(
+              'Modifier le mot de passe',
+              style: TextStyle(fontSize: responsive.fontSize(15)),
+            ),
+            SizedBox(height: responsive.spacing(16)),
+            Text(
+              'Cette fonctionnalité sera disponible dans une prochaine mise à jour.',
+              style: TextStyle(fontSize: responsive.fontSize(14)),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Get.back(),
+          child: Text(
+            'Fermer',
+            style: TextStyle(fontSize: responsive.fontSize(14)),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showAbout(ResponsiveHelper responsive) {
+    Get.dialog(
+      AlertDialog(
+        title: Text(
+          'À propos de MarPro+',
+          style: TextStyle(fontSize: responsive.fontSize(18)),
+        ),
+        content: Container(
+          constraints: BoxConstraints(
+            maxWidth: responsive.value<double>(
+              mobile: 300,
+              tablet: 400,
+              desktop: 500,
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'MarPro+ est une application de gestion collaborative de projets.',
+                style: TextStyle(fontSize: responsive.fontSize(14)),
+              ),
+              SizedBox(height: responsive.spacing(16)),
+              Text(
+                'Version: 1.0.0',
+                style: TextStyle(fontSize: responsive.fontSize(14)),
+              ),
+              SizedBox(height: responsive.spacing(8)),
+              Text(
+                'Développé avec ❤️',
+                style: TextStyle(fontSize: responsive.fontSize(14)),
+              ),
+            ],
+          ),
+        ),
         actions: [
-          TextButton(onPressed: () => Get.back(), child: const Text('Fermer')),
+          TextButton(
+            onPressed: () => Get.back(),
+            child: Text(
+              'Fermer',
+              style: TextStyle(fontSize: responsive.fontSize(14)),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  void _confirmLogout() {
+  void _confirmLogout(ResponsiveHelper responsive) {
     Get.dialog(
       AlertDialog(
-        title: const Text('Déconnexion'),
-        content: const Text('Êtes-vous sûr de vouloir vous déconnecter ?'),
+        title: Text(
+          'Déconnexion',
+          style: TextStyle(fontSize: responsive.fontSize(18)),
+        ),
+        content: Text(
+          'Êtes-vous sûr de vouloir vous déconnecter ?',
+          style: TextStyle(fontSize: responsive.fontSize(14)),
+        ),
         actions: [
-          TextButton(onPressed: () => Get.back(), child: const Text('Annuler')),
+          TextButton(
+            onPressed: () => Get.back(),
+            child: Text(
+              'Annuler',
+              style: TextStyle(fontSize: responsive.fontSize(14)),
+            ),
+          ),
           TextButton(
             onPressed: () {
               Get.back();
               _logout();
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Se déconnecter'),
+            child: Text(
+              'Se déconnecter',
+              style: TextStyle(fontSize: responsive.fontSize(14)),
+            ),
           ),
         ],
       ),
     );
   }
+
+  // === Méthodes de logique métier inchangées ===
 
   void _logout() async {
     await _authController.logout();

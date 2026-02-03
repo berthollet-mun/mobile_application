@@ -2,6 +2,7 @@ import 'package:community/app/routes/app_routes.dart';
 import 'package:community/app/themes/app_theme.dart';
 import 'package:community/controllers/community_controller.dart';
 import 'package:community/controllers/project_controller.dart';
+import 'package:community/core/utils/responsive_helper.dart';
 import 'package:community/data/models/community_model.dart';
 import 'package:community/views/shared/widgets/button.dart';
 import 'package:community/views/shared/widgets/loading_widget.dart';
@@ -40,29 +41,19 @@ class _CommunityDashboardPageState extends State<CommunityDashboardPage> {
 
   @override
   Widget build(BuildContext context) {
+    final responsive = ResponsiveHelper(context);
+
     return Scaffold(
-      appBar: AppBar(
-        title: Obx(() {
-          final community = _communityController.currentCommunity.value;
-          return Text(community?.nom ?? 'Tableau de bord');
-        }),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _refreshData,
-            tooltip: 'Actualiser',
-          ),
-          IconButton(
-            icon: const Icon(Icons.more_vert),
-            onPressed: _showOptions,
-            tooltip: 'Options',
-          ),
-        ],
-      ),
+      appBar: _buildAppBar(responsive),
       body: Obx(() {
         final community = _communityController.currentCommunity.value;
         if (community == null) {
-          return const Center(child: Text('Communauté non trouvée'));
+          return Center(
+            child: Text(
+              'Communauté non trouvée',
+              style: TextStyle(fontSize: responsive.fontSize(16)),
+            ),
+          );
         }
 
         if (_projectController.isLoading.value) {
@@ -71,138 +62,279 @@ class _CommunityDashboardPageState extends State<CommunityDashboardPage> {
 
         return RefreshIndicator(
           onRefresh: _refreshData,
-          child: ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              // En-tête de la communauté
-              _buildCommunityHeader(community),
-              const SizedBox(height: 24),
-              // Statistiques
-              _buildStatisticsSection(community),
-              const SizedBox(height: 24),
-              // Navigation rapide
-              _buildQuickActions(community),
-              const SizedBox(height: 24),
-              // Projets récents
-              _buildRecentProjects(community),
-            ],
-          ),
+          child: _buildBody(community, responsive),
         );
       }),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: _buildFAB(responsive),
+    );
+  }
+
+  /// AppBar responsive
+  PreferredSizeWidget _buildAppBar(ResponsiveHelper responsive) {
+    return AppBar(
+      title: Obx(() {
+        final community = _communityController.currentCommunity.value;
+        return Text(
+          community?.nom ?? 'Tableau de bord',
+          style: TextStyle(fontSize: responsive.fontSize(18)),
+        );
+      }),
+      toolbarHeight: responsive.value<double>(
+        mobile: 56,
+        tablet: 60,
+        desktop: 64,
+      ),
+      actions: [
+        IconButton(
+          icon: Icon(Icons.refresh, size: responsive.iconSize(24)),
+          onPressed: _refreshData,
+          tooltip: 'Actualiser',
+        ),
+        IconButton(
+          icon: Icon(Icons.more_vert, size: responsive.iconSize(24)),
+          onPressed: _showOptions,
+          tooltip: 'Options',
+        ),
+      ],
+    );
+  }
+
+  /// Corps de la page - Layout adaptatif
+  Widget _buildBody(CommunityModel community, ResponsiveHelper responsive) {
+    // Sur desktop, utiliser un layout en 2 colonnes
+    if (responsive.isDesktop) {
+      return SingleChildScrollView(
+        padding: EdgeInsets.all(responsive.contentPadding),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: responsive.value<double>(
+                mobile: double.infinity,
+                tablet: 900,
+                desktop: 1200,
+                largeDesktop: 1400,
+              ),
+            ),
+            child: Column(
+              children: [
+                // Header pleine largeur
+                _buildCommunityHeader(community, responsive),
+                SizedBox(height: responsive.spacing(24)),
+
+                // 2 colonnes : Stats + Quick Actions
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 1,
+                      child: _buildStatisticsSection(community, responsive),
+                    ),
+                    SizedBox(width: responsive.spacing(24)),
+                    Expanded(
+                      flex: 1,
+                      child: _buildQuickActions(community, responsive),
+                    ),
+                  ],
+                ),
+                SizedBox(height: responsive.spacing(24)),
+
+                // Projets récents pleine largeur
+                _buildRecentProjects(community, responsive),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Sur mobile/tablette, layout en colonne
+    return ListView(
+      padding: EdgeInsets.all(responsive.contentPadding),
+      children: [
+        _buildCommunityHeader(community, responsive),
+        SizedBox(height: responsive.spacing(24)),
+        _buildStatisticsSection(community, responsive),
+        SizedBox(height: responsive.spacing(24)),
+        _buildQuickActions(community, responsive),
+        SizedBox(height: responsive.spacing(24)),
+        _buildRecentProjects(community, responsive),
+        SizedBox(height: responsive.spacing(80)), // Espace pour le FAB
+      ],
+    );
+  }
+
+  /// FAB responsive
+  Widget _buildFAB(ResponsiveHelper responsive) {
+    // Sur mobile, afficher seulement l'icône si l'écran est petit
+    if (responsive.isMobile && responsive.screenWidth < 360) {
+      return FloatingActionButton(
         onPressed: () {
           _projectController.clearCurrentProject();
           Get.toNamed(AppRoutes.createEditProject);
         },
-        icon: const Icon(Icons.add),
-        label: const Text('Nouveau projet'),
         heroTag: 'new_project',
+        child: Icon(Icons.add, size: responsive.iconSize(24)),
+      );
+    }
+
+    return FloatingActionButton.extended(
+      onPressed: () {
+        _projectController.clearCurrentProject();
+        Get.toNamed(AppRoutes.createEditProject);
+      },
+      icon: Icon(Icons.add, size: responsive.iconSize(20)),
+      label: Text(
+        'Nouveau projet',
+        style: TextStyle(fontSize: responsive.fontSize(14)),
       ),
+      heroTag: 'new_project',
     );
   }
 
-  Widget _buildCommunityHeader(CommunityModel community) {
+  /// Header de la communauté
+  Widget _buildCommunityHeader(
+    CommunityModel community,
+    ResponsiveHelper responsive,
+  ) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(responsive.spacing(20)),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(responsive.spacing(16)),
         boxShadow: [AppTheme.cardShadow],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  color: _getCommunityColor(community.community_id),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Center(
-                  child: Text(
-                    community.nom.substring(0, 1).toUpperCase(),
-                    style: const TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            community.nom,
-                            style: const TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        RoleBadge(role: community.role),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    if (community.description.isNotEmpty)
-                      Text(community.description, style: AppTheme.bodyText2),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
+          // En-tête avec avatar et infos
+          _buildHeaderTop(community, responsive),
+          SizedBox(height: responsive.spacing(16)),
           const Divider(),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                children: [
-                  Text(
-                    'Code d\'invitation',
-                    style: AppTheme.bodyText2.copyWith(fontSize: 12),
-                  ),
-                  const SizedBox(height: 4),
-                  SelectableText(
-                    community.invite_code.toString(),
-                    style: const TextStyle(
-                      fontFamily: 'Courier',
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 2,
-                    ),
-                  ),
-                ],
-              ),
-              IconButton(
-                onPressed: () {
-                  _copyInviteCode(community);
-                },
-                icon: const Icon(Icons.content_copy),
-                tooltip: 'Copier le code',
-              ),
-            ],
-          ),
+          SizedBox(height: responsive.spacing(16)),
+          // Code d'invitation
+          _buildInviteCodeSection(community, responsive),
         ],
       ),
     );
   }
 
-  Widget _buildStatisticsSection(CommunityModel community) {
+  Widget _buildHeaderTop(
+    CommunityModel community,
+    ResponsiveHelper responsive,
+  ) {
+    final avatarSize = responsive.value<double>(
+      mobile: 50,
+      tablet: 60,
+      desktop: 70,
+    );
+
+    return Row(
+      children: [
+        // Avatar
+        Container(
+          width: avatarSize,
+          height: avatarSize,
+          decoration: BoxDecoration(
+            color: _getCommunityColor(community.community_id),
+            borderRadius: BorderRadius.circular(responsive.spacing(12)),
+          ),
+          child: Center(
+            child: Text(
+              community.nom.substring(0, 1).toUpperCase(),
+              style: TextStyle(
+                fontSize: responsive.fontSize(avatarSize * 0.45),
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ),
+        SizedBox(width: responsive.spacing(16)),
+
+        // Infos communauté
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      community.nom,
+                      style: TextStyle(
+                        fontSize: responsive.fontSize(20),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  RoleBadge(role: community.role),
+                ],
+              ),
+              if (community.description.isNotEmpty) ...[
+                SizedBox(height: responsive.spacing(4)),
+                Text(
+                  community.description,
+                  style: AppTheme.bodyText2.copyWith(
+                    fontSize: responsive.fontSize(14),
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInviteCodeSection(
+    CommunityModel community,
+    ResponsiveHelper responsive,
+  ) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Code d\'invitation',
+              style: AppTheme.bodyText2.copyWith(
+                fontSize: responsive.fontSize(12),
+              ),
+            ),
+            SizedBox(height: responsive.spacing(4)),
+            SelectableText(
+              community.invite_code.toString(),
+              style: TextStyle(
+                fontFamily: 'Courier',
+                fontSize: responsive.fontSize(18),
+                fontWeight: FontWeight.bold,
+                letterSpacing: 2,
+              ),
+            ),
+          ],
+        ),
+        IconButton(
+          onPressed: () => _copyInviteCode(community),
+          icon: Icon(Icons.content_copy, size: responsive.iconSize(20)),
+          tooltip: 'Copier le code',
+        ),
+      ],
+    );
+  }
+
+  /// Section statistiques
+  Widget _buildStatisticsSection(
+    CommunityModel community,
+    ResponsiveHelper responsive,
+  ) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(responsive.spacing(20)),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(responsive.spacing(16)),
         boxShadow: [AppTheme.cardShadow],
       ),
       child: Column(
@@ -210,42 +342,53 @@ class _CommunityDashboardPageState extends State<CommunityDashboardPage> {
         children: [
           Text(
             'Statistiques',
-            style: AppTheme.headline2.copyWith(fontSize: 20),
+            style: AppTheme.headline2.copyWith(
+              fontSize: responsive.fontSize(20),
+            ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: responsive.spacing(16)),
           GridView.count(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: 2,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            childAspectRatio: 1.5,
+            crossAxisCount: responsive.value<int>(
+              mobile: 2,
+              tablet: 2,
+              desktop: 2,
+              largeDesktop: 4,
+            ),
+            crossAxisSpacing: responsive.spacing(12),
+            mainAxisSpacing: responsive.spacing(12),
+            childAspectRatio: responsive.value<double>(
+              mobile: 1.2,
+              tablet: 1.4,
+              desktop: 1.5,
+            ),
             children: [
               _buildStatCard(
-                context,
+                responsive,
                 icon: Icons.people_outline,
                 value: community.members_count.toString(),
                 label: 'Membres',
                 color: Colors.blue,
               ),
               _buildStatCard(
-                context,
+                responsive,
                 icon: Icons.folder_outlined,
-                value: community.projects_count.toString() ?? '0',
+                value: community.projects_count.toString(),
                 label: 'Projets',
                 color: Colors.green,
               ),
               _buildStatCard(
-                context,
+                responsive,
                 icon: Icons.task_outlined,
-                value: '0', // À remplacer avec les vraies données
+                value: '0',
                 label: 'Tâches',
                 color: Colors.orange,
               ),
               _buildStatCard(
-                context,
+                responsive,
                 icon: Icons.check_circle_outline,
-                value: '0%', // À remplacer avec les vraies données
+                value: '0%',
                 label: 'Achevées',
                 color: Colors.purple,
               ),
@@ -257,45 +400,61 @@ class _CommunityDashboardPageState extends State<CommunityDashboardPage> {
   }
 
   Widget _buildStatCard(
-    BuildContext context, {
+    ResponsiveHelper responsive, {
     required IconData icon,
     required String value,
     required String label,
     required Color color,
   }) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(responsive.spacing(12)),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(responsive.spacing(12)),
         border: Border.all(color: color.withOpacity(0.3)),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 32, color: color),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: color,
+          Icon(icon, size: responsive.iconSize(28), color: color),
+          SizedBox(height: responsive.spacing(4)),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              value,
+              style: TextStyle(
+                fontSize: responsive.fontSize(20),
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
             ),
           ),
-          const SizedBox(height: 4),
-          Text(label, style: AppTheme.bodyText2),
+          SizedBox(height: responsive.spacing(2)),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              label,
+              style: AppTheme.bodyText2.copyWith(
+                fontSize: responsive.fontSize(12),
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildQuickActions(CommunityModel community) {
+  /// Section actions rapides
+  Widget _buildQuickActions(
+    CommunityModel community,
+    ResponsiveHelper responsive,
+  ) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(responsive.spacing(20)),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(responsive.spacing(16)),
         boxShadow: [AppTheme.cardShadow],
       ),
       child: Column(
@@ -303,72 +462,71 @@ class _CommunityDashboardPageState extends State<CommunityDashboardPage> {
         children: [
           Text(
             'Navigation rapide',
-            style: AppTheme.headline2.copyWith(fontSize: 20),
+            style: AppTheme.headline2.copyWith(
+              fontSize: responsive.fontSize(20),
+            ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: responsive.spacing(16)),
           GridView.count(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: 3,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            childAspectRatio: 1,
+            crossAxisCount: responsive.value<int>(
+              mobile: 3,
+              tablet: 3,
+              desktop: 3,
+              largeDesktop: 6,
+            ),
+            crossAxisSpacing: responsive.spacing(12),
+            mainAxisSpacing: responsive.spacing(12),
+            childAspectRatio: responsive.value<double>(
+              mobile: 0.9,
+              tablet: 1.0,
+              desktop: 1.1,
+            ),
             children: [
               _buildQuickActionButton(
-                context,
+                responsive,
                 icon: Icons.folder_open,
                 label: 'Projets',
-                onTap: () {
-                  Get.toNamed(AppRoutes.projectsList);
-                },
+                onTap: () => Get.toNamed(AppRoutes.projectsList),
                 color: Colors.blue,
               ),
               _buildQuickActionButton(
-                context,
+                responsive,
                 icon: Icons.people,
                 label: 'Membres',
-                onTap: () {
-                  Get.toNamed(AppRoutes.membersList);
-                },
+                onTap: () => Get.toNamed(AppRoutes.membersList),
                 color: Colors.green,
                 enabled: community.role == 'ADMIN',
               ),
               _buildQuickActionButton(
-                context,
+                responsive,
                 icon: Icons.history,
                 label: 'Historique',
-                onTap: () {
-                  Get.toNamed(AppRoutes.activityLog);
-                },
+                onTap: () => Get.toNamed(AppRoutes.activityLog),
                 color: Colors.orange,
               ),
               _buildQuickActionButton(
-                context,
+                responsive,
                 icon: Icons.person_add,
                 label: 'Inviter',
-                onTap: () {
-                  Get.toNamed(AppRoutes.inviteMember);
-                },
+                onTap: () => Get.toNamed(AppRoutes.inviteMember),
                 color: Colors.purple,
                 enabled: community.role == 'ADMIN',
               ),
               _buildQuickActionButton(
-                context,
+                responsive,
                 icon: Icons.settings,
                 label: 'Paramètres',
-                onTap: () {
-                  _showSettings(community);
-                },
+                onTap: () => _showSettings(community),
                 color: Colors.teal,
                 enabled: community.role == 'ADMIN',
               ),
               _buildQuickActionButton(
-                context,
+                responsive,
                 icon: Icons.help_outline,
                 label: 'Aide',
-                onTap: () {
-                  _showHelp();
-                },
+                onTap: () => _showHelp(),
                 color: Colors.grey,
               ),
             ],
@@ -379,7 +537,7 @@ class _CommunityDashboardPageState extends State<CommunityDashboardPage> {
   }
 
   Widget _buildQuickActionButton(
-    BuildContext context, {
+    ResponsiveHelper responsive, {
     required IconData icon,
     required String label,
     required VoidCallback onTap,
@@ -387,26 +545,33 @@ class _CommunityDashboardPageState extends State<CommunityDashboardPage> {
     bool enabled = true,
   }) {
     return Material(
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(responsive.spacing(12)),
       color: enabled ? color.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(responsive.spacing(12)),
         onTap: enabled ? onTap : null,
         child: Container(
-          padding: const EdgeInsets.all(12),
+          padding: EdgeInsets.all(responsive.spacing(8)),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 32, color: enabled ? color : Colors.grey),
-              const SizedBox(height: 8),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: enabled ? color : Colors.grey,
+              Icon(
+                icon,
+                size: responsive.iconSize(28),
+                color: enabled ? color : Colors.grey,
+              ),
+              SizedBox(height: responsive.spacing(6)),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: responsive.fontSize(11),
+                    fontWeight: FontWeight.w600,
+                    color: enabled ? color : Colors.grey,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-                textAlign: TextAlign.center,
               ),
             ],
           ),
@@ -415,14 +580,18 @@ class _CommunityDashboardPageState extends State<CommunityDashboardPage> {
     );
   }
 
-  Widget _buildRecentProjects(CommunityModel community) {
+  /// Section projets récents
+  Widget _buildRecentProjects(
+    CommunityModel community,
+    ResponsiveHelper responsive,
+  ) {
     final projects = _projectController.activeProjects.take(3).toList();
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(responsive.spacing(20)),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(responsive.spacing(16)),
         boxShadow: [AppTheme.cardShadow],
       ),
       child: Column(
@@ -433,76 +602,131 @@ class _CommunityDashboardPageState extends State<CommunityDashboardPage> {
               Expanded(
                 child: Text(
                   'Projets récents',
-                  style: AppTheme.headline2.copyWith(fontSize: 20),
+                  style: AppTheme.headline2.copyWith(
+                    fontSize: responsive.fontSize(20),
+                  ),
                 ),
               ),
               if (_projectController.activeProjects.isNotEmpty)
                 TextButton(
-                  onPressed: () {
-                    Get.toNamed(AppRoutes.projectsList);
-                  },
-                  child: const Text('Voir tout'),
+                  onPressed: () => Get.toNamed(AppRoutes.projectsList),
+                  child: Text(
+                    'Voir tout',
+                    style: TextStyle(fontSize: responsive.fontSize(14)),
+                  ),
                 ),
             ],
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: responsive.spacing(16)),
+
           if (projects.isEmpty)
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 40),
-              child: Column(
-                children: [
-                  Icon(
-                    Icons.folder_open_outlined,
-                    size: 60,
-                    color: Colors.grey[400],
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Aucun projet pour le moment',
-                    style: TextStyle(fontSize: 16, color: Colors.grey),
-                  ),
-                  const SizedBox(height: 16),
-                  SecondaryButton(
-                    text: 'Créer un premier projet',
-                    onPressed: () {
-                      _projectController.clearCurrentProject();
-                      Get.toNamed(AppRoutes.createEditProject);
-                    },
-                    fullWidth: false,
-                  ),
-                ],
-              ),
-            )
+            _buildEmptyProjects(responsive)
           else
-            Column(
-              children: projects.map((project) {
-                return _buildProjectItem(project);
-              }).toList(),
-            ),
+            _buildProjectsList(projects, responsive),
         ],
       ),
     );
   }
 
-  Widget _buildProjectItem(dynamic project) {
+  Widget _buildEmptyProjects(ResponsiveHelper responsive) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      padding: EdgeInsets.symmetric(vertical: responsive.spacing(40)),
+      child: Column(
+        children: [
+          Icon(
+            Icons.folder_open_outlined,
+            size: responsive.iconSize(60),
+            color: Colors.grey[400],
+          ),
+          SizedBox(height: responsive.spacing(16)),
+          Text(
+            'Aucun projet pour le moment',
+            style: TextStyle(
+              fontSize: responsive.fontSize(16),
+              color: Colors.grey,
+            ),
+          ),
+          SizedBox(height: responsive.spacing(16)),
+          SecondaryButton(
+            text: 'Créer un premier projet',
+            onPressed: () {
+              _projectController.clearCurrentProject();
+              Get.toNamed(AppRoutes.createEditProject);
+            },
+            fullWidth: false,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProjectsList(
+    List<dynamic> projects,
+    ResponsiveHelper responsive,
+  ) {
+    // Sur desktop, afficher en grille
+    if (responsive.isDesktop && projects.length > 1) {
+      return GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: responsive.value<int>(
+            mobile: 1,
+            tablet: 2,
+            desktop: 3,
+          ),
+          crossAxisSpacing: responsive.spacing(12),
+          mainAxisSpacing: responsive.spacing(12),
+          childAspectRatio: 2.5,
+        ),
+        itemCount: projects.length,
+        itemBuilder: (context, index) {
+          return _buildProjectItem(projects[index], responsive);
+        },
+      );
+    }
+
+    // Sur mobile/tablette, liste simple
+    return Column(
+      children: projects.map((project) {
+        return Padding(
+          padding: EdgeInsets.only(bottom: responsive.spacing(12)),
+          child: _buildProjectItem(project, responsive),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildProjectItem(dynamic project, ResponsiveHelper responsive) {
+    return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(responsive.spacing(12)),
         border: Border.all(color: Colors.grey[300]!),
       ),
       child: ListTile(
-        leading: const Icon(Icons.folder_outlined, color: Colors.blue),
-        title: Text(project.nom),
+        contentPadding: EdgeInsets.symmetric(
+          horizontal: responsive.spacing(16),
+          vertical: responsive.spacing(4),
+        ),
+        leading: Icon(
+          Icons.folder_outlined,
+          color: Colors.blue,
+          size: responsive.iconSize(24),
+        ),
+        title: Text(
+          project.nom,
+          style: TextStyle(fontSize: responsive.fontSize(15)),
+        ),
         subtitle: Text(
           project.description.isNotEmpty
               ? project.description
               : 'Aucune description',
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
+          style: TextStyle(fontSize: responsive.fontSize(13)),
         ),
-        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+        trailing: Icon(Icons.arrow_forward_ios, size: responsive.iconSize(16)),
         onTap: () {
           _projectController.setCurrentProject(project);
           Get.toNamed(AppRoutes.kanbanBoard);
@@ -511,182 +735,425 @@ class _CommunityDashboardPageState extends State<CommunityDashboardPage> {
     );
   }
 
+  /// Bottom sheet options
   void _showOptions() {
     final community = _communityController.currentCommunity.value;
     if (community == null) return;
+
+    final responsive = ResponsiveHelper(context);
 
     Get.bottomSheet(
       Container(
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(20),
-            topRight: Radius.circular(20),
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(responsive.spacing(20)),
+            topRight: Radius.circular(responsive.spacing(20)),
           ),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ListTile(
-              leading: const Icon(Icons.refresh),
-              title: const Text('Actualiser'),
+            SizedBox(height: responsive.spacing(8)),
+            // Indicateur de drag
+            Container(
+              width: responsive.spacing(40),
+              height: responsive.spacing(4),
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(responsive.spacing(2)),
+              ),
+            ),
+            SizedBox(height: responsive.spacing(8)),
+            _buildOptionTile(
+              responsive,
+              icon: Icons.refresh,
+              title: 'Actualiser',
               onTap: () {
                 Get.back();
                 _refreshData();
               },
             ),
-            ListTile(
-              leading: const Icon(Icons.info_outline),
-              title: const Text('Détails de la communauté'),
+            _buildOptionTile(
+              responsive,
+              icon: Icons.info_outline,
+              title: 'Détails de la communauté',
               onTap: () {
                 Get.back();
                 _showCommunityDetails(community);
               },
             ),
             if (community.role == 'ADMIN') ...[
-              ListTile(
-                leading: const Icon(Icons.edit),
-                title: const Text('Modifier la communauté'),
+              _buildOptionTile(
+                responsive,
+                icon: Icons.edit,
+                title: 'Modifier la communauté',
                 onTap: () {
                   Get.back();
                   _editCommunity(community);
                 },
               ),
-              ListTile(
-                leading: const Icon(Icons.delete_outline, color: Colors.red),
-                title: const Text(
-                  'Supprimer la communauté',
-                  style: TextStyle(color: Colors.red),
-                ),
+              _buildOptionTile(
+                responsive,
+                icon: Icons.delete_outline,
+                title: 'Supprimer la communauté',
+                color: Colors.red,
                 onTap: () {
                   Get.back();
                   _confirmDeleteCommunity(community);
                 },
               ),
             ],
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.exit_to_app),
-              title: const Text('Quitter cette communauté'),
+            Divider(height: responsive.spacing(1)),
+            _buildOptionTile(
+              responsive,
+              icon: Icons.exit_to_app,
+              title: 'Quitter cette communauté',
               onTap: () {
                 Get.back();
                 _confirmLeaveCommunity(community);
               },
             ),
+            SizedBox(height: responsive.spacing(16)),
           ],
         ),
       ),
     );
   }
 
+  Widget _buildOptionTile(
+    ResponsiveHelper responsive, {
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+    Color? color,
+  }) {
+    return ListTile(
+      leading: Icon(icon, size: responsive.iconSize(24), color: color),
+      title: Text(
+        title,
+        style: TextStyle(fontSize: responsive.fontSize(15), color: color),
+      ),
+      onTap: onTap,
+    );
+  }
+
+  /// Dialog détails communauté
   void _showCommunityDetails(CommunityModel community) {
+    final responsive = ResponsiveHelper(context);
+
     Get.dialog(
       AlertDialog(
-        title: const Text('Détails de la communauté'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Nom: ${community.nom}'),
-            const SizedBox(height: 8),
-            Text(
-              'Description: ${community.description.isNotEmpty ? community.description : "Aucune"}',
-            ),
-            const SizedBox(height: 8),
-            Text('Code d\'invitation: ${community.invite_code}'),
-            const SizedBox(height: 8),
-            Text('Votre rôle: ${community.role}'),
-            const SizedBox(height: 8),
-            Text('Membres: ${community.members_count}'),
-            const SizedBox(height: 8),
-            Text('Projets: ${community.projects_count}'),
-            const SizedBox(height: 8),
-            // ✅ APRÈS
-            Text(
-              'Créée le: ${community.created_at != null ? _formatDate(community.created_at!) : 'N/A'}',
-            ),
-          ],
+        title: Text(
+          'Détails de la communauté',
+          style: TextStyle(fontSize: responsive.fontSize(18)),
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildDetailRow(responsive, 'Nom', community.nom),
+              _buildDetailRow(
+                responsive,
+                'Description',
+                community.description.isNotEmpty
+                    ? community.description
+                    : 'Aucune',
+              ),
+              _buildDetailRow(
+                responsive,
+                'Code d\'invitation',
+                community.invite_code.toString(),
+              ),
+              _buildDetailRow(responsive, 'Votre rôle', community.role),
+              _buildDetailRow(
+                responsive,
+                'Membres',
+                community.members_count.toString(),
+              ),
+              _buildDetailRow(
+                responsive,
+                'Projets',
+                community.projects_count.toString(),
+              ),
+              _buildDetailRow(
+                responsive,
+                'Créée le',
+                community.created_at != null
+                    ? _formatDate(community.created_at!)
+                    : 'N/A',
+              ),
+            ],
+          ),
         ),
         actions: [
-          TextButton(onPressed: () => Get.back(), child: const Text('Fermer')),
+          TextButton(
+            onPressed: () => Get.back(),
+            child: Text(
+              'Fermer',
+              style: TextStyle(fontSize: responsive.fontSize(14)),
+            ),
+          ),
         ],
       ),
     );
   }
 
+  Widget _buildDetailRow(
+    ResponsiveHelper responsive,
+    String label,
+    String value,
+  ) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: responsive.spacing(8)),
+      child: RichText(
+        text: TextSpan(
+          style: TextStyle(
+            fontSize: responsive.fontSize(14),
+            color: Theme.of(context).textTheme.bodyLarge?.color,
+          ),
+          children: [
+            TextSpan(
+              text: '$label: ',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            TextSpan(text: value),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Dialog édition communauté
   void _editCommunity(CommunityModel community) {
-    Get.snackbar(
-      'Fonctionnalité à venir',
-      'L\'édition de communauté sera disponible bientôt.',
-      backgroundColor: Colors.orange,
-      colorText: Colors.white,
+    final responsive = ResponsiveHelper(context);
+    final nameController = TextEditingController(text: community.nom);
+    final descriptionController = TextEditingController(
+      text: community.description,
+    );
+
+    Get.dialog(
+      AlertDialog(
+        title: Text(
+          'Modifier la communauté',
+          style: TextStyle(fontSize: responsive.fontSize(18)),
+        ),
+        content: SingleChildScrollView(
+          child: SizedBox(
+            width: responsive.value<double>(
+              mobile: double.infinity,
+              tablet: 400,
+              desktop: 450,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: InputDecoration(
+                    labelText: 'Nom de la communauté',
+                    border: const OutlineInputBorder(),
+                    contentPadding: EdgeInsets.all(responsive.spacing(12)),
+                  ),
+                  style: TextStyle(fontSize: responsive.fontSize(14)),
+                ),
+                SizedBox(height: responsive.spacing(16)),
+                TextField(
+                  controller: descriptionController,
+                  decoration: InputDecoration(
+                    labelText: 'Description',
+                    border: const OutlineInputBorder(),
+                    contentPadding: EdgeInsets.all(responsive.spacing(12)),
+                  ),
+                  style: TextStyle(fontSize: responsive.fontSize(14)),
+                  maxLines: 3,
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: Text(
+              'Annuler',
+              style: TextStyle(fontSize: responsive.fontSize(14)),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Get.dialog(
+                const Center(child: CircularProgressIndicator()),
+                barrierDismissible: false,
+              );
+
+              final success = await _communityController.updateCommunity(
+                communityId: community.community_id,
+                nom: nameController.text.trim(),
+                description: descriptionController.text.trim(),
+              );
+
+              Get.back();
+              Get.back();
+
+              if (success) {
+                await _refreshData();
+                Get.snackbar(
+                  'Succès',
+                  'Communauté modifiée avec succès',
+                  backgroundColor: Colors.green,
+                  colorText: Colors.white,
+                );
+              } else {
+                Get.snackbar(
+                  'Erreur',
+                  'Impossible de modifier la communauté',
+                  backgroundColor: Colors.red,
+                  colorText: Colors.white,
+                );
+              }
+            },
+            child: Text(
+              'Enregistrer',
+              style: TextStyle(fontSize: responsive.fontSize(14)),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   void _confirmDeleteCommunity(CommunityModel community) {
+    final responsive = ResponsiveHelper(context);
+
     Get.dialog(
       AlertDialog(
-        title: const Text('Supprimer la communauté'),
+        title: Text(
+          'Supprimer la communauté',
+          style: TextStyle(fontSize: responsive.fontSize(18)),
+        ),
         content: Text(
           'Êtes-vous sûr de vouloir supprimer définitivement la communauté "${community.nom}" ? Cette action est irréversible.',
+          style: TextStyle(fontSize: responsive.fontSize(14)),
         ),
         actions: [
-          TextButton(onPressed: () => Get.back(), child: const Text('Annuler')),
+          TextButton(
+            onPressed: () => Get.back(),
+            child: Text(
+              'Annuler',
+              style: TextStyle(fontSize: responsive.fontSize(14)),
+            ),
+          ),
           TextButton(
             onPressed: () {
               Get.back();
               _deleteCommunity(community);
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Supprimer'),
+            child: Text(
+              'Supprimer',
+              style: TextStyle(fontSize: responsive.fontSize(14)),
+            ),
           ),
         ],
       ),
     );
   }
 
-  void _deleteCommunity(CommunityModel community) {
-    Get.snackbar(
-      'Fonctionnalité à venir',
-      'La suppression de communauté sera disponible bientôt.',
-      backgroundColor: Colors.orange,
-      colorText: Colors.white,
+  Future<void> _deleteCommunity(CommunityModel community) async {
+    print('=== DELETE COMMUNITY ===');
+    print('Community ID: ${community.community_id}');
+
+    final success = await _communityController.deleteCommunity(
+      community.community_id,
     );
+
+    print('Delete success: $success');
+    print('Error: ${_communityController.error.value}');
+    print('========================');
+
+    if (success) {
+      Get.offAllNamed(AppRoutes.communitySelect);
+      Get.snackbar(
+        'Succès',
+        'La communauté "${community.nom}" a été supprimée',
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
+    } else {
+      Get.snackbar(
+        'Erreur',
+        _communityController.error.value.isNotEmpty
+            ? _communityController.error.value
+            : 'Impossible de supprimer la communauté',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
   }
 
   void _confirmLeaveCommunity(CommunityModel community) {
+    final responsive = ResponsiveHelper(context);
+
     Get.dialog(
       AlertDialog(
-        title: const Text('Quitter la communauté'),
+        title: Text(
+          'Quitter la communauté',
+          style: TextStyle(fontSize: responsive.fontSize(18)),
+        ),
         content: Text(
           'Êtes-vous sûr de vouloir quitter la communauté "${community.nom}" ?',
+          style: TextStyle(fontSize: responsive.fontSize(14)),
         ),
         actions: [
-          TextButton(onPressed: () => Get.back(), child: const Text('Annuler')),
+          TextButton(
+            onPressed: () => Get.back(),
+            child: Text(
+              'Annuler',
+              style: TextStyle(fontSize: responsive.fontSize(14)),
+            ),
+          ),
           TextButton(
             onPressed: () {
               Get.back();
               _leaveCommunity(community);
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Quitter'),
+            child: Text(
+              'Quitter',
+              style: TextStyle(fontSize: responsive.fontSize(14)),
+            ),
           ),
         ],
       ),
     );
   }
 
-  void _leaveCommunity(CommunityModel community) {
-    Get.snackbar(
-      'Fonctionnalité à venir',
-      'La fonction de quitter une communauté sera disponible bientôt.',
-      backgroundColor: Colors.orange,
-      colorText: Colors.white,
+  Future<void> _leaveCommunity(CommunityModel community) async {
+    final success = await _communityController.leaveCommunity(
+      community.community_id,
     );
+
+    if (success) {
+      Get.offAllNamed(AppRoutes.communitySelect);
+      Get.snackbar(
+        'Succès',
+        'Vous avez quitté la communauté "${community.nom}"',
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
+    } else {
+      Get.snackbar(
+        'Erreur',
+        'Impossible de quitter la communauté',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
   }
 
   void _copyInviteCode(CommunityModel community) {
-    // clipboard.setData(ClipboardData(text: community.inviteCode));
     Get.snackbar(
       'Code copié',
       'Le code d\'invitation a été copié dans le presse-papier.',
@@ -705,21 +1172,46 @@ class _CommunityDashboardPageState extends State<CommunityDashboardPage> {
   }
 
   void _showHelp() {
+    final responsive = ResponsiveHelper(context);
+
     Get.defaultDialog(
       title: 'Aide - Tableau de bord',
-      content: const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Le tableau de bord vous permet de :'),
-          SizedBox(height: 8),
-          Text('• Voir les statistiques de votre communauté'),
-          Text('• Accéder rapidement aux différentes sections'),
-          Text('• Voir les projets récents'),
-          Text('• Gérer les paramètres (Admin uniquement)'),
-        ],
+      titleStyle: TextStyle(fontSize: responsive.fontSize(18)),
+      content: Padding(
+        padding: EdgeInsets.all(responsive.spacing(8)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Le tableau de bord vous permet de :',
+              style: TextStyle(fontSize: responsive.fontSize(14)),
+            ),
+            SizedBox(height: responsive.spacing(8)),
+            ...[
+              '• Voir les statistiques de votre communauté',
+              '• Accéder rapidement aux différentes sections',
+              '• Voir les projets récents',
+              '• Gérer les paramètres (Admin uniquement)',
+            ].map(
+              (text) => Padding(
+                padding: EdgeInsets.only(bottom: responsive.spacing(4)),
+                child: Text(
+                  text,
+                  style: TextStyle(fontSize: responsive.fontSize(13)),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
       actions: [
-        TextButton(onPressed: () => Get.back(), child: const Text('Fermer')),
+        TextButton(
+          onPressed: () => Get.back(),
+          child: Text(
+            'Fermer',
+            style: TextStyle(fontSize: responsive.fontSize(14)),
+          ),
+        ),
       ],
     );
   }

@@ -297,4 +297,58 @@ class CommunityController extends GetxController {
           member.fullName.toLowerCase().contains(lowercaseQuery);
     }).toList();
   }
+
+  // Supprimer une communauté
+  Future<bool> deleteCommunity(int communityId) async {
+    try {
+      isLoading.value = true;
+      error.value = '';
+
+      final success = await _communityService.deleteCommunity(communityId);
+
+      if (success) {
+        // Retirer de la liste locale
+        communities.removeWhere((c) => c.community_id == communityId);
+
+        // Si c'était la communauté courante, la réinitialiser
+        if (currentCommunity.value?.community_id == communityId) {
+          currentCommunity.value = null;
+        }
+      }
+
+      return success;
+    } catch (e) {
+      error.value = 'Erreur de suppression: $e';
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  // Quitter une communauté
+  Future<bool> leaveCommunity(int communityId) async {
+    try {
+      isLoading.value = true;
+      error.value = '';
+
+      final success = await _communityService.leaveCommunity(communityId);
+
+      if (success) {
+        // Retirer de la liste locale
+        communities.removeWhere((c) => c.community_id == communityId);
+
+        // Si c'était la communauté courante, la réinitialiser
+        if (currentCommunity.value?.community_id == communityId) {
+          currentCommunity.value = null;
+        }
+      }
+
+      return success;
+    } catch (e) {
+      error.value = 'Erreur: $e';
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  }
 }

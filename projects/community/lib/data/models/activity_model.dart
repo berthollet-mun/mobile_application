@@ -60,4 +60,6 @@ class ActivityModel {
       created_at: created_at ?? this.created_at,
     );
   }
+
+  String get fullName => '$prenom $nom'.trim();
 }

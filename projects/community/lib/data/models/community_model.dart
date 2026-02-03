@@ -35,7 +35,8 @@ class CommunityModel {
       nom: json['nom']?.toString() ?? '',
       description: json['description']?.toString() ?? '',
       invite_code: json['invite_code']?.toString() ?? '',
-      role: json['role']?.toString() ?? 'MEMBRE',
+      role:
+          json['role']?.toString() ?? json['your_role']?.toString() ?? 'MEMBRE',
       joined_at: _parseDate(json['joined_at']),
       created_at: _parseDate(json['created_at']),
       creator_nom: json['creator_nom']?.toString(),

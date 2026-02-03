@@ -114,4 +114,25 @@ class CommunityService extends GetxService {
     );
     return response.success;
   }
+
+  // Supprimer une communauté (seulement pour ADMIN)
+  Future<bool> deleteCommunity(int communityId) async {
+    final response = await _apiService.delete('/communities/$communityId');
+    return response.success;
+  }
+
+  // Dans CommunityService - Remplace leaveCommunity
+  Future<bool> leaveCommunity(int communityId) async {
+    // Utiliser l'endpoint pour retirer un membre (soi-même)
+    final response = await _apiService.delete(
+      '/communities/$communityId/members/me',
+    );
+
+    print('=== API LEAVE COMMUNITY ===');
+    print('Response success: ${response.success}');
+    print('Response data: ${response.data}');
+    print('===========================');
+
+    return response.success;
+  }
 }
