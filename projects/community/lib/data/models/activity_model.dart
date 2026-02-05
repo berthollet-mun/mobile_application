@@ -1,11 +1,11 @@
 class ActivityModel {
-  int id;
-  String activity_type;
-  String description;
-  String nom;
-  String prenom;
-  String email;
-  DateTime created_at;
+  final int id;
+  final String activity_type;
+  final String description;
+  final String nom;
+  final String prenom;
+  final String email;
+  final DateTime created_at;
 
   ActivityModel({
     required this.id,
@@ -19,13 +19,16 @@ class ActivityModel {
 
   factory ActivityModel.fromJson(Map<String, dynamic> json) {
     return ActivityModel(
-      id: json['id'],
-      activity_type: json['activity_type'],
-      description: json['description'],
-      nom: json['nom'],
-      prenom: json['prenom'],
-      email: json['email'],
-      created_at: json['created_at'],
+      id: json['id'] ?? 0,
+      activity_type: json['activity_type']?.toString() ?? '',
+      description: json['description']?.toString() ?? '',
+      nom: json['nom']?.toString() ?? '',
+      prenom: json['prenom']?.toString() ?? '',
+      email: json['email']?.toString() ?? '',
+      // ✅ CORRECTION : Parser la date correctement
+      created_at: json['created_at'] != null
+          ? DateTime.parse(json['created_at'].toString())
+          : DateTime.now(),
     );
   }
 
@@ -37,7 +40,7 @@ class ActivityModel {
       'nom': nom,
       'prenom': prenom,
       'email': email,
-      'created_at': created_at,
+      'created_at': created_at.toIso8601String(),
     };
   }
 

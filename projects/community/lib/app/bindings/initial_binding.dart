@@ -6,6 +6,7 @@ import 'package:community/controllers/project_controller.dart';
 import 'package:community/controllers/task_controller.dart';
 import 'package:community/controllers/theme_controller.dart';
 import 'package:community/core/services/Community_service.dart';
+import 'package:community/core/services/activity_service.dart';
 import 'package:community/core/services/api_service.dart';
 import 'package:community/core/services/auth_service.dart';
 import 'package:community/core/services/comment_service.dart';
@@ -32,6 +33,7 @@ class InitialBinding extends Bindings {
     Get.lazyPut(() => ProjectService(), fenix: true);
     Get.lazyPut(() => TaskService(), fenix: true);
     Get.lazyPut(() => CommentService(), fenix: true);
+    Get.lazyPut(() => ActivityService(), fenix: true);
 
     // 4. Initialiser les controllers
     Get.lazyPut(() => AuthController(), fenix: true);
