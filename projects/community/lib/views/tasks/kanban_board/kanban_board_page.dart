@@ -31,6 +31,12 @@ class _KanbanBoardPageState extends State<KanbanBoardPage> {
     final project = _projectController.currentProject.value;
     final community = _communityController.currentCommunity.value;
 
+    // DEBUG
+    print('=== KANBAN INIT ===');
+    print('Project: ${project?.id} - ${project?.nom}');
+    print('Community: ${community?.community_id} - ${community?.nom}');
+    print('===================');
+
     if (project != null && community != null) {
       _projectId = project.id;
       _communityId = community.community_id;
@@ -93,7 +99,10 @@ class _KanbanBoardPageState extends State<KanbanBoardPage> {
             title: 'Tableau vide',
             message: 'Créez votre première tâche !',
             icon: Icons.view_kanban_outlined,
-            onAction: () => Get.toNamed(AppRoutes.createEditTask),
+            onAction: () {
+              _taskController.clearCurrentTask();
+              Get.toNamed(AppRoutes.createEditTask);
+            },
             actionLabel: 'Créer une tâche',
           );
         }
@@ -133,7 +142,10 @@ class _KanbanBoardPageState extends State<KanbanBoardPage> {
       }),
       floatingActionButton: _canCreateTask(community)
           ? FloatingActionButton.extended(
-              onPressed: () => Get.toNamed(AppRoutes.createEditTask),
+              onPressed: () {
+                _taskController.clearCurrentTask();
+                Get.toNamed(AppRoutes.createEditTask);
+              },
               icon: const Icon(Icons.add),
               label: const Text('Nouvelle tâche'),
             )
@@ -271,7 +283,10 @@ class _KanbanBoardPageState extends State<KanbanBoardPage> {
             Container(
               padding: const EdgeInsets.all(12),
               child: TextButton.icon(
-                onPressed: () => Get.toNamed(AppRoutes.createEditTask),
+                onPressed: () {
+                  _taskController.clearCurrentTask();
+                  Get.toNamed(AppRoutes.createEditTask);
+                },
                 icon: Icon(Icons.add, color: color, size: 18),
                 label: Text('Ajouter', style: TextStyle(color: color)),
               ),
@@ -341,7 +356,44 @@ class _KanbanBoardPageState extends State<KanbanBoardPage> {
                       ),
                     ),
                   const Spacer(),
+
+                  // ✅ BOUTON COMMENTAIRES
+                  InkWell(
+                    onTap: () => _openComments(task, community),
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.chat_bubble_outline,
+                            size: 14,
+                            color: Colors.grey[600],
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${task.comments_count}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
                   if (task.due_date != null) ...[
+                    const SizedBox(width: 8),
                     Icon(
                       Icons.calendar_today,
                       size: 12,
@@ -362,6 +414,20 @@ class _KanbanBoardPageState extends State<KanbanBoardPage> {
           ),
         ),
       ),
+    );
+  }
+
+  // ✅ AJOUTER CETTE MÉTHODE
+  void _openComments(TaskModel task, CommunityModel community) {
+    Get.toNamed(
+      AppRoutes.taskComments,
+      arguments: {
+        'communityId': _communityId,
+        'projectId': _projectId,
+        'taskId': task.id,
+        'taskTitle': task.titre,
+        'userRole': community.role ?? 'MEMBRE',
+      },
     );
   }
 

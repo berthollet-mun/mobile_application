@@ -3,7 +3,6 @@ import 'package:community/app/themes/app_theme.dart';
 import 'package:community/controllers/community_controller.dart';
 import 'package:community/core/utils/responsive_helper.dart';
 import 'package:community/core/utils/validators.dart';
-import 'package:community/views/shared/widgets/button.dart';
 import 'package:community/views/shared/widgets/form_field.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';

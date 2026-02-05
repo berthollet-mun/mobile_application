@@ -823,73 +823,262 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   void _editProfile(UserModel user, ResponsiveHelper responsive) {
-    Get.defaultDialog(
-      title: 'Modifier le profil',
-      titleStyle: TextStyle(fontSize: responsive.fontSize(18)),
-      content: Container(
-        constraints: BoxConstraints(
-          maxWidth: responsive.value<double>(
-            mobile: 300,
-            tablet: 400,
-            desktop: 500,
+    final prenomController = TextEditingController(text: user.prenom);
+    final nomController = TextEditingController(text: user.nom);
+
+    Get.dialog(
+      AlertDialog(
+        title: Text(
+          'Modifier le profil',
+          style: TextStyle(fontSize: responsive.fontSize(18)),
+        ),
+        content: SingleChildScrollView(
+          child: Container(
+            constraints: BoxConstraints(
+              maxWidth: responsive.value<double>(
+                mobile: 300,
+                tablet: 400,
+                desktop: 500,
+              ),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: prenomController,
+                  decoration: InputDecoration(
+                    labelText: 'Prénom',
+                    border: const OutlineInputBorder(),
+                    labelStyle: TextStyle(fontSize: responsive.fontSize(14)),
+                  ),
+                  style: TextStyle(fontSize: responsive.fontSize(14)),
+                ),
+                SizedBox(height: responsive.spacing(16)),
+                TextField(
+                  controller: nomController,
+                  decoration: InputDecoration(
+                    labelText: 'Nom',
+                    border: const OutlineInputBorder(),
+                    labelStyle: TextStyle(fontSize: responsive.fontSize(14)),
+                  ),
+                  style: TextStyle(fontSize: responsive.fontSize(14)),
+                ),
+              ],
+            ),
           ),
         ),
-        child: Column(
-          children: [
-            Text(
-              'Cette fonctionnalité sera disponible dans une prochaine mise à jour.',
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: Text(
+              'Annuler',
               style: TextStyle(fontSize: responsive.fontSize(14)),
             ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Get.back(),
-          child: Text(
-            'Fermer',
-            style: TextStyle(fontSize: responsive.fontSize(14)),
           ),
-        ),
-      ],
+          ElevatedButton(
+            onPressed: () async {
+              // Afficher loading
+              Get.dialog(
+                const Center(child: CircularProgressIndicator()),
+                barrierDismissible: false,
+              );
+
+              final success = await _authController.updateProfile(
+                prenom: prenomController.text.trim(),
+                nom: nomController.text.trim(),
+              );
+
+              Get.back(); // Fermer loading
+              Get.back(); // Fermer dialogue
+
+              if (success) {
+                Get.snackbar(
+                  'Succès',
+                  'Profil mis à jour avec succès',
+                  backgroundColor: Colors.green,
+                  colorText: Colors.white,
+                );
+              } else {
+                Get.snackbar(
+                  'Erreur',
+                  'Impossible de mettre à jour le profil',
+                  backgroundColor: Colors.red,
+                  colorText: Colors.white,
+                );
+              }
+            },
+            child: Text(
+              'Enregistrer',
+              style: TextStyle(fontSize: responsive.fontSize(14)),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   void _showSecuritySettings(ResponsiveHelper responsive) {
-    Get.defaultDialog(
-      title: 'Sécurité',
-      titleStyle: TextStyle(fontSize: responsive.fontSize(18)),
-      content: Container(
-        constraints: BoxConstraints(
-          maxWidth: responsive.value<double>(
-            mobile: 300,
-            tablet: 400,
-            desktop: 500,
+    final currentPasswordController = TextEditingController();
+    final newPasswordController = TextEditingController();
+    final confirmPasswordController = TextEditingController();
+
+    final RxBool obscureCurrentPassword = true.obs;
+    final RxBool obscureNewPassword = true.obs;
+    final RxBool obscureConfirmPassword = true.obs;
+
+    Get.dialog(
+      AlertDialog(
+        title: Text(
+          'Changer le mot de passe',
+          style: TextStyle(fontSize: responsive.fontSize(18)),
+        ),
+        content: SingleChildScrollView(
+          child: Container(
+            constraints: BoxConstraints(
+              maxWidth: responsive.value<double>(
+                mobile: 300,
+                tablet: 400,
+                desktop: 500,
+              ),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Nouveau mot de passe
+                Obx(
+                  () => TextField(
+                    controller: newPasswordController,
+                    obscureText: obscureNewPassword.value,
+                    decoration: InputDecoration(
+                      labelText: 'Nouveau mot de passe',
+                      border: const OutlineInputBorder(),
+                      labelStyle: TextStyle(fontSize: responsive.fontSize(14)),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          obscureNewPassword.value
+                              ? Icons.visibility_off
+                              : Icons.visibility,
+                          size: responsive.iconSize(20),
+                        ),
+                        onPressed: () => obscureNewPassword.toggle(),
+                      ),
+                    ),
+                    style: TextStyle(fontSize: responsive.fontSize(14)),
+                  ),
+                ),
+                SizedBox(height: responsive.spacing(16)),
+                // Confirmer mot de passe
+                Obx(
+                  () => TextField(
+                    controller: confirmPasswordController,
+                    obscureText: obscureConfirmPassword.value,
+                    decoration: InputDecoration(
+                      labelText: 'Confirmer le mot de passe',
+                      border: const OutlineInputBorder(),
+                      labelStyle: TextStyle(fontSize: responsive.fontSize(14)),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          obscureConfirmPassword.value
+                              ? Icons.visibility_off
+                              : Icons.visibility,
+                          size: responsive.iconSize(20),
+                        ),
+                        onPressed: () => obscureConfirmPassword.toggle(),
+                      ),
+                    ),
+                    style: TextStyle(fontSize: responsive.fontSize(14)),
+                  ),
+                ),
+                SizedBox(height: responsive.spacing(8)),
+                Text(
+                  'Le mot de passe doit contenir au moins 6 caractères',
+                  style: TextStyle(
+                    fontSize: responsive.fontSize(12),
+                    color: Colors.grey,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-        child: Column(
-          children: [
-            Text(
-              'Modifier le mot de passe',
-              style: TextStyle(fontSize: responsive.fontSize(15)),
-            ),
-            SizedBox(height: responsive.spacing(16)),
-            Text(
-              'Cette fonctionnalité sera disponible dans une prochaine mise à jour.',
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: Text(
+              'Annuler',
               style: TextStyle(fontSize: responsive.fontSize(14)),
             ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Get.back(),
-          child: Text(
-            'Fermer',
-            style: TextStyle(fontSize: responsive.fontSize(14)),
           ),
-        ),
-      ],
+          ElevatedButton(
+            onPressed: () async {
+              // Validation
+              if (newPasswordController.text.isEmpty) {
+                Get.snackbar(
+                  'Erreur',
+                  'Veuillez entrer un nouveau mot de passe',
+                  backgroundColor: Colors.red,
+                  colorText: Colors.white,
+                );
+                return;
+              }
+
+              if (newPasswordController.text.length < 6) {
+                Get.snackbar(
+                  'Erreur',
+                  'Le mot de passe doit contenir au moins 6 caractères',
+                  backgroundColor: Colors.red,
+                  colorText: Colors.white,
+                );
+                return;
+              }
+
+              if (newPasswordController.text !=
+                  confirmPasswordController.text) {
+                Get.snackbar(
+                  'Erreur',
+                  'Les mots de passe ne correspondent pas',
+                  backgroundColor: Colors.red,
+                  colorText: Colors.white,
+                );
+                return;
+              }
+
+              // Afficher loading
+              Get.dialog(
+                const Center(child: CircularProgressIndicator()),
+                barrierDismissible: false,
+              );
+
+              final success = await _authController.updateProfile(
+                password: newPasswordController.text,
+              );
+
+              Get.back(); // Fermer loading
+              Get.back(); // Fermer dialogue
+
+              if (success) {
+                Get.snackbar(
+                  'Succès',
+                  'Mot de passe changé avec succès',
+                  backgroundColor: Colors.green,
+                  colorText: Colors.white,
+                );
+              } else {
+                Get.snackbar(
+                  'Erreur',
+                  'Impossible de changer le mot de passe',
+                  backgroundColor: Colors.red,
+                  colorText: Colors.white,
+                );
+              }
+            },
+            child: Text(
+              'Changer',
+              style: TextStyle(fontSize: responsive.fontSize(14)),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

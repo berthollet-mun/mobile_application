@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-import 'package:flutter/material.dart';
-
 class PrimaryButton extends StatelessWidget {
   final String text;
   final VoidCallback onPressed;

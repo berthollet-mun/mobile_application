@@ -45,7 +45,9 @@ class _CreateEditTaskPageState extends State<CreateEditTaskPage> {
     final project = _projectController.currentProject.value;
 
     if (community == null || project == null) {
-      Get.back();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Get.back();
+      });
       return;
     }
 
@@ -58,13 +60,28 @@ class _CreateEditTaskPageState extends State<CreateEditTaskPage> {
       _dueDate = _currentTask!.due_date;
     }
 
-    await _loadMembers(community.community_id);
+    // Charger les membres après le premier frame
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _loadMembers(community.community_id);
+    });
   }
 
   Future<void> _loadMembers(int communityId) async {
+    if (!mounted) return;
+
     setState(() => _isLoadingMembers = true);
+
     try {
-      _members = await _communityController.getCommunityMembers(communityId);
+      final members = await _communityController.getCommunityMembers(
+        communityId,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _members = members;
+        _isLoadingMembers = false;
+      });
 
       if (_isEditMode && _currentTask?.assigned_to != null) {
         _assignedTo = _members.firstWhereOrNull(
@@ -73,8 +90,9 @@ class _CreateEditTaskPageState extends State<CreateEditTaskPage> {
       }
     } catch (e) {
       debugPrint('Erreur chargement membres: $e');
-    } finally {
-      setState(() => _isLoadingMembers = false);
+      if (mounted) {
+        setState(() => _isLoadingMembers = false);
+      }
     }
   }
 
@@ -154,14 +172,32 @@ class _CreateEditTaskPageState extends State<CreateEditTaskPage> {
   Future<void> _saveTask() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final community = _communityController.currentCommunity.value!;
-    final project = _projectController.currentProject.value!;
+    final community = _communityController.currentCommunity.value;
+    final project = _projectController.currentProject.value;
+
+    // DEBUG
+    print('=== SAVE TASK DEBUG ===');
+    print('Community: ${community?.community_id}');
+    print('Project ID: ${project?.id}');
+    print('Project nom: ${project?.nom}');
+    print('=======================');
+
+    if (community == null || project == null || project.id == 0) {
+      Get.snackbar(
+        'Erreur',
+        'Projet non sélectionné. Veuillez retourner au projet.',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return;
+    }
 
     final dueDateStr = _dueDate != null
         ? '${_dueDate!.year}-${_dueDate!.month.toString().padLeft(2, '0')}-${_dueDate!.day.toString().padLeft(2, '0')}'
         : null;
 
     if (_isEditMode && _currentTask != null) {
+      // MODE ÉDITION
       final success = await _taskController.updateTask(
         communityId: community.community_id,
         projectId: project.id,
@@ -190,6 +226,7 @@ class _CreateEditTaskPageState extends State<CreateEditTaskPage> {
         );
       }
     } else {
+      // MODE CRÉATION
       final task = await _taskController.createTask(
         communityId: community.community_id,
         projectId: project.id,

@@ -220,11 +220,12 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
           ),
           const Divider(height: 24),
 
-          _buildInfoRow(
-            Icons.comment_outlined,
-            'Commentaires',
-            '${task.comments_count}',
-          ),
+          // _buildInfoRow(
+          //   Icons.comment_outlined,
+          //   'Commentaires',
+          //   '${task.comments_count}',
+          // ),
+          _buildCommentRow(task),
 
           const SizedBox(height: 20),
 
@@ -297,6 +298,53 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
           const SizedBox(height: 12),
           Text(task.description, style: const TextStyle(height: 1.5)),
         ],
+      ),
+    );
+  }
+
+  Widget _buildCommentRow(TaskModel task) {
+    final community = _communityController.currentCommunity.value;
+
+    return InkWell(
+      onTap: () {
+        Get.toNamed(
+          AppRoutes.taskComments,
+          arguments: {
+            'communityId': _communityId,
+            'projectId': _projectId,
+            'taskId': _taskId,
+            'taskTitle': task.titre,
+            'userRole': community?.role ?? 'MEMBRE',
+          },
+        );
+      },
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          children: [
+            Icon(Icons.chat_bubble_outline, size: 20, color: Colors.blue[600]),
+            const SizedBox(width: 12),
+            Text('Commentaires', style: TextStyle(color: Colors.grey[600])),
+            const Spacer(),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.blue.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                '${task.comments_count}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Icon(Icons.chevron_right, color: Colors.grey[400]),
+          ],
+        ),
       ),
     );
   }

@@ -413,8 +413,8 @@ class _CommunitySelectPageState extends State<CommunitySelectPage> {
         else
           FloatingActionButton(
             onPressed: () => Get.toNamed(AppRoutes.joinCommunity),
-            child: Icon(Icons.key, size: responsive.iconSize(24)),
             heroTag: 'join_community',
+            child: Icon(Icons.key, size: responsive.iconSize(24)),
           ),
         SizedBox(height: responsive.spacing(12)),
         if (responsive.isTablet || !responsive.isMobileSmall)
@@ -430,8 +430,8 @@ class _CommunitySelectPageState extends State<CommunitySelectPage> {
         else
           FloatingActionButton(
             onPressed: () => Get.toNamed(AppRoutes.createCommunity),
-            child: Icon(Icons.add, size: responsive.iconSize(24)),
             heroTag: 'create_community',
+            child: Icon(Icons.add, size: responsive.iconSize(24)),
           ),
       ],
     );
@@ -889,12 +889,27 @@ class _CommunitySelectPageState extends State<CommunitySelectPage> {
   }
 
   Future<void> _leaveCommunity(CommunityModel community) async {
+    // Récupérer l'ID de l'utilisateur connecté
+    final userId = _authController.user.value?.user_id;
+
+    if (userId == null) {
+      Get.snackbar(
+        'Erreur',
+        'Utilisateur non connecté',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return;
+    }
+
     final success = await _communityController.leaveCommunity(
-      community.community_id,
+      communityId: community.community_id,
+      userId: userId,
     );
 
     if (success) {
       await _loadCommunities();
+
       Get.snackbar(
         'Succès',
         'Vous avez quitté la communauté "${community.nom}"',

@@ -117,4 +117,35 @@ class AuthController extends GetxController {
       return false;
     }
   }
+
+  Future<bool> updateProfile({
+    String? nom,
+    String? prenom,
+    String? password,
+  }) async {
+    try {
+      isLoading.value = true;
+      error.value = '';
+
+      final success = await _authService.updateProfile(
+        nom: nom,
+        prenom: prenom,
+        password: password,
+      );
+
+      if (success) {
+        // Recharger le profil pour avoir les nouvelles données
+        await loadProfile();
+        return true;
+      } else {
+        error.value = 'Impossible de mettre à jour le profil';
+        return false;
+      }
+    } catch (e) {
+      error.value = 'Erreur: $e';
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  }
 }

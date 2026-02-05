@@ -121,14 +121,20 @@ class CommunityService extends GetxService {
     return response.success;
   }
 
-  // Dans CommunityService - Remplace leaveCommunity
-  Future<bool> leaveCommunity(int communityId) async {
-    // Utiliser l'endpoint pour retirer un membre (soi-même)
+  // Dans community_service.dart
+
+  // Quitter une communauté (se retirer soi-même)
+  Future<bool> leaveCommunity({
+    required int communityId,
+    required int userId,
+  }) async {
+    print('=== API LEAVE COMMUNITY ===');
+    print('URL: /communities/$communityId/members/$userId');
+
     final response = await _apiService.delete(
-      '/communities/$communityId/members/me',
+      '/communities/$communityId/members/$userId',
     );
 
-    print('=== API LEAVE COMMUNITY ===');
     print('Response success: ${response.success}');
     print('Response data: ${response.data}');
     print('===========================');

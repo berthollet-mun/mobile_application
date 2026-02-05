@@ -202,7 +202,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       return TextButton(
         onPressed: widget.onPressed,
         style: style.copyWith(
-          padding: MaterialStateProperty.all(
+          padding: WidgetStateProperty.all(
             EdgeInsets.symmetric(
               horizontal: responsive.spacing(12),
               vertical: responsive.spacing(8),

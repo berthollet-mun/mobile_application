@@ -326,12 +326,18 @@ class CommunityController extends GetxController {
   }
 
   // Quitter une communauté
-  Future<bool> leaveCommunity(int communityId) async {
+  Future<bool> leaveCommunity({
+    required int communityId,
+    required int userId,
+  }) async {
     try {
       isLoading.value = true;
       error.value = '';
 
-      final success = await _communityService.leaveCommunity(communityId);
+      final success = await _communityService.leaveCommunity(
+        communityId: communityId,
+        userId: userId,
+      );
 
       if (success) {
         // Retirer de la liste locale
@@ -341,6 +347,9 @@ class CommunityController extends GetxController {
         if (currentCommunity.value?.community_id == communityId) {
           currentCommunity.value = null;
         }
+
+        // Vider les membres
+        currentMembers.clear();
       }
 
       return success;

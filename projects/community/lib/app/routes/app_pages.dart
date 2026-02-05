@@ -1,5 +1,6 @@
 import 'package:community/views/auth/login/login_page.dart';
 import 'package:community/views/auth/register/register_page.dart';
+import 'package:community/views/comments/task_comment_section.dart';
 import 'package:community/views/community/community_dashboard/community_dashboard_page.dart';
 import 'package:community/views/community/create_community/create_community_page.dart';
 import 'package:community/views/community/invite_member/invite_member_page.dart';
@@ -58,6 +59,9 @@ class AppPages {
       page: () => const CreateEditTaskPage(),
     ),
     GetPage(name: AppRoutes.taskDetail, page: () => const TaskDetailPage()),
+
+    // Dans la liste des pages :
+    GetPage(name: AppRoutes.taskComments, page: () => const TaskCommentsPage()),
     GetPage(name: AppRoutes.activityLog, page: () => const ActivityLogPage()),
     GetPage(name: AppRoutes.profile, page: () => const ProfilePage()),
   ];

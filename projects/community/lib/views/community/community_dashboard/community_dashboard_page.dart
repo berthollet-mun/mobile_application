@@ -7,6 +7,7 @@ import 'package:community/data/models/community_model.dart';
 import 'package:community/views/shared/widgets/button.dart';
 import 'package:community/views/shared/widgets/loading_widget.dart';
 import 'package:community/views/shared/widgets/role_badge.dart';
+import 'package:community/controllers/auth_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -20,6 +21,7 @@ class CommunityDashboardPage extends StatefulWidget {
 class _CommunityDashboardPageState extends State<CommunityDashboardPage> {
   final CommunityController _communityController = Get.find();
   final ProjectController _projectController = Get.find();
+  final AuthController _authController = Get.find();
 
   late CommunityModel _community;
 
@@ -1131,12 +1133,27 @@ class _CommunityDashboardPageState extends State<CommunityDashboardPage> {
   }
 
   Future<void> _leaveCommunity(CommunityModel community) async {
+    // Récupérer l'ID de l'utilisateur connecté
+    final userId = _authController.user.value?.user_id;
+
+    if (userId == null) {
+      Get.snackbar(
+        'Erreur',
+        'Utilisateur non connecté',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return;
+    }
+
     final success = await _communityController.leaveCommunity(
-      community.community_id,
+      communityId: community.community_id,
+      userId: userId,
     );
 
     if (success) {
       Get.offAllNamed(AppRoutes.communitySelect);
+
       Get.snackbar(
         'Succès',
         'Vous avez quitté la communauté "${community.nom}"',
