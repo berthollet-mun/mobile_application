@@ -7,6 +7,7 @@ import 'package:community/views/community/invite_member/invite_member_page.dart'
 import 'package:community/views/community/join_community/join_community_page.dart';
 import 'package:community/views/community/memebers_list/members_list_page.dart';
 import 'package:community/views/history/activity_log_page.dart';
+import 'package:community/views/notifications/notifications_page.dart';
 import 'package:community/views/profile/profile_page.dart';
 import 'package:community/views/projects/create_edit_project/create_edit_project_page.dart';
 import 'package:community/views/projects/projects_list/projects_list_page.dart';
@@ -64,5 +65,9 @@ class AppPages {
     GetPage(name: AppRoutes.taskComments, page: () => const TaskCommentsPage()),
     GetPage(name: AppRoutes.activityLog, page: () => const ActivityLogPage()),
     GetPage(name: AppRoutes.profile, page: () => const ProfilePage()),
+    GetPage(
+      name: AppRoutes.notifications,
+      page: () => const NotificationsPage(),
+    ),
   ];
 }

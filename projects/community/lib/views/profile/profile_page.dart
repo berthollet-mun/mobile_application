@@ -1,6 +1,7 @@
 import 'package:community/app/routes/app_routes.dart';
 import 'package:community/app/themes/app_theme.dart';
 import 'package:community/controllers/auth_controller.dart';
+import 'package:community/controllers/notification_controller.dart';
 import 'package:community/controllers/theme_controller.dart';
 import 'package:community/core/utils/responsive_helper.dart';
 import 'package:community/core/utils/widgets/responsive_builder.dart';
@@ -21,9 +22,19 @@ class _ProfilePageState extends State<ProfilePage> {
   final AuthController _authController = Get.find();
   final ThemeController _themeController = Get.find();
 
+  // ✅ Initialiser le NotificationController de manière sécurisée
+  late final NotificationController _notificationController;
+
   @override
   void initState() {
     super.initState();
+
+    // ✅ S'assurer que le controller est enregistré
+    if (!Get.isRegistered<NotificationController>()) {
+      Get.put(NotificationController());
+    }
+    _notificationController = Get.find<NotificationController>();
+
     _loadProfile();
   }
 
@@ -42,6 +53,50 @@ class _ProfilePageState extends State<ProfilePage> {
           style: TextStyle(fontSize: responsive.fontSize(18)),
         ),
         actions: [
+          // ✅ BADGE NOTIFICATIONS (corrigé)
+          Stack(
+            children: [
+              IconButton(
+                icon: Icon(
+                  Icons.notifications_outlined,
+                  size: responsive.iconSize(24),
+                ),
+                onPressed: () => Get.toNamed(AppRoutes.notifications),
+                tooltip: 'Notifications',
+              ),
+              Obx(() {
+                final count = _notificationController.unreadCount.value;
+                if (count > 0) {
+                  return Positioned(
+                    right: 8,
+                    top: 8,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 16,
+                        minHeight: 16,
+                      ),
+                      child: Text(
+                        count > 9 ? '9+' : '$count',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  );
+                }
+                return const SizedBox.shrink();
+              }),
+            ],
+          ),
+          // Paramètres
           IconButton(
             icon: Icon(Icons.settings, size: responsive.iconSize(24)),
             onPressed: () {
@@ -96,11 +151,9 @@ class _ProfilePageState extends State<ProfilePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // En-tête du profil
                 _buildProfileHeader(user, responsive),
                 SizedBox(height: responsive.spacing(32)),
 
-                // Sur desktop, afficher en grille
                 if (responsive.isDesktop) ...[
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -129,7 +182,6 @@ class _ProfilePageState extends State<ProfilePage> {
                     ],
                   ),
                 ] else ...[
-                  // Sur mobile/tablette, afficher en colonne
                   _buildPersonalInfo(user, responsive),
                   SizedBox(height: responsive.spacing(32)),
                   _buildStatistics(responsive),
@@ -160,10 +212,8 @@ class _ProfilePageState extends State<ProfilePage> {
       child: responsive.isDesktop
           ? Row(
               children: [
-                // Avatar
                 _buildAvatar(user, responsive),
                 SizedBox(width: responsive.spacing(32)),
-                // Informations
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -207,10 +257,8 @@ class _ProfilePageState extends State<ProfilePage> {
             )
           : Column(
               children: [
-                // Avatar
                 _buildAvatar(user, responsive),
                 SizedBox(height: responsive.spacing(16)),
-                // Nom et email
                 Text(
                   user.fullName,
                   style: AppTheme.headline1.copyWith(
@@ -225,7 +273,6 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                 ),
                 SizedBox(height: responsive.spacing(16)),
-                // Date d'inscription
                 Container(
                   padding: EdgeInsets.symmetric(
                     horizontal: responsive.spacing(12),
@@ -392,12 +439,7 @@ class _ProfilePageState extends State<ProfilePage> {
           GridView.count(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: responsive.value<int>(
-              mobile: 2,
-              tablet: 2,
-              desktop: 2,
-              largeDesktop: 2,
-            ),
+            crossAxisCount: 2,
             crossAxisSpacing: responsive.spacing(16),
             mainAxisSpacing: responsive.spacing(16),
             childAspectRatio: responsive.value<double>(
@@ -500,6 +542,8 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
           ),
           SizedBox(height: responsive.spacing(16)),
+
+          // Mode sombre
           Obx(() {
             return SwitchListTile(
               title: Text(
@@ -523,30 +567,62 @@ class _ProfilePageState extends State<ProfilePage> {
             );
           }),
           const Divider(),
-          SwitchListTile(
+
+          // ✅ NOTIFICATIONS (corrigé)
+          ListTile(
+            leading: Icon(
+              Icons.notifications_outlined,
+              size: responsive.iconSize(24),
+            ),
             title: Text(
               'Notifications',
               style: TextStyle(fontSize: responsive.fontSize(15)),
             ),
-            subtitle: Text(
-              'Recevoir les notifications push',
-              style: TextStyle(fontSize: responsive.fontSize(13)),
-            ),
-            value: true,
-            onChanged: (value) {
-              Get.snackbar(
-                'Notifications',
-                'Les paramètres de notification seront disponibles bientôt.',
-                backgroundColor: Colors.blue,
-                colorText: Colors.white,
+            subtitle: Obx(() {
+              final count = _notificationController.unreadCount.value;
+              return Text(
+                count > 0
+                    ? '$count non lue${count > 1 ? 's' : ''}'
+                    : 'Toutes lues',
+                style: TextStyle(fontSize: responsive.fontSize(13)),
               );
-            },
-            secondary: Icon(
-              Icons.notifications_active_outlined,
-              size: responsive.iconSize(24),
+            }),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Obx(() {
+                  final count = _notificationController.unreadCount.value;
+                  if (count > 0) {
+                    return Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        count > 99 ? '99+' : '$count',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    );
+                  }
+                  return const SizedBox.shrink();
+                }),
+                const SizedBox(width: 8),
+                Icon(Icons.arrow_forward_ios, size: responsive.iconSize(16)),
+              ],
             ),
+            onTap: () => Get.toNamed(AppRoutes.notifications),
           ),
           const Divider(),
+
+          // Langue
           ListTile(
             leading: Icon(
               Icons.language_outlined,
@@ -712,72 +788,45 @@ class _ProfilePageState extends State<ProfilePage> {
           children: [
             Container(
               margin: EdgeInsets.symmetric(vertical: responsive.spacing(12)),
-              width: responsive.value<double>(
-                mobile: 40,
-                tablet: 50,
-                desktop: 60,
-              ),
+              width: 40,
               height: 4,
               decoration: BoxDecoration(
                 color: Colors.grey[300],
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            _buildSettingsTile(
-              icon: Icons.edit,
-              title: 'Modifier le profil',
+            ListTile(
+              leading: const Icon(Icons.edit),
+              title: const Text('Modifier le profil'),
               onTap: () {
                 Get.back();
                 _editProfile(_authController.user.value!, responsive);
               },
-              responsive: responsive,
             ),
-            _buildSettingsTile(
-              icon: Icons.notifications,
-              title: 'Notifications',
+            ListTile(
+              leading: const Icon(Icons.notifications),
+              title: const Text('Notifications'),
               onTap: () {
                 Get.back();
-                Get.snackbar(
-                  'Notifications',
-                  'Les paramètres de notification seront disponibles bientôt.',
-                  backgroundColor: Colors.blue,
-                  colorText: Colors.white,
-                );
+                Get.toNamed(AppRoutes.notifications);
               },
-              responsive: responsive,
             ),
-            _buildSettingsTile(
-              icon: Icons.security,
-              title: 'Sécurité',
+            ListTile(
+              leading: const Icon(Icons.security),
+              title: const Text('Sécurité'),
               onTap: () {
                 Get.back();
                 _showSecuritySettings(responsive);
               },
-              responsive: responsive,
-            ),
-            _buildSettingsTile(
-              icon: Icons.help_outline,
-              title: 'Aide et support',
-              onTap: () {
-                Get.back();
-                Get.snackbar(
-                  'Support',
-                  'Le support sera disponible bientôt.',
-                  backgroundColor: Colors.blue,
-                  colorText: Colors.white,
-                );
-              },
-              responsive: responsive,
             ),
             const Divider(),
-            _buildSettingsTile(
-              icon: Icons.info_outline,
-              title: 'À propos',
+            ListTile(
+              leading: const Icon(Icons.info_outline),
+              title: const Text('À propos'),
               onTap: () {
                 Get.back();
                 _showAbout(responsive);
               },
-              responsive: responsive,
             ),
           ],
         ),
@@ -785,41 +834,8 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildSettingsTile({
-    required IconData icon,
-    required String title,
-    required VoidCallback onTap,
-    required ResponsiveHelper responsive,
-  }) {
-    return ListTile(
-      leading: Icon(icon, size: responsive.iconSize(24)),
-      title: Text(title, style: TextStyle(fontSize: responsive.fontSize(15))),
-      onTap: onTap,
-      contentPadding: EdgeInsets.symmetric(
-        horizontal: responsive.spacing(20),
-        vertical: responsive.spacing(4),
-      ),
-    );
-  }
-
   void _showDialog(String title, String content, ResponsiveHelper responsive) {
-    Get.defaultDialog(
-      title: title,
-      titleStyle: TextStyle(fontSize: responsive.fontSize(18)),
-      content: Container(
-        constraints: BoxConstraints(
-          maxWidth: responsive.value<double>(
-            mobile: 300,
-            tablet: 400,
-            desktop: 500,
-          ),
-        ),
-        child: Text(
-          content,
-          style: TextStyle(fontSize: responsive.fontSize(14)),
-        ),
-      ),
-    );
+    Get.defaultDialog(title: title, content: Text(content));
   }
 
   void _editProfile(UserModel user, ResponsiveHelper responsive) {
@@ -828,56 +844,31 @@ class _ProfilePageState extends State<ProfilePage> {
 
     Get.dialog(
       AlertDialog(
-        title: Text(
-          'Modifier le profil',
-          style: TextStyle(fontSize: responsive.fontSize(18)),
-        ),
-        content: SingleChildScrollView(
-          child: Container(
-            constraints: BoxConstraints(
-              maxWidth: responsive.value<double>(
-                mobile: 300,
-                tablet: 400,
-                desktop: 500,
+        title: const Text('Modifier le profil'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: prenomController,
+              decoration: const InputDecoration(
+                labelText: 'Prénom',
+                border: OutlineInputBorder(),
               ),
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: prenomController,
-                  decoration: InputDecoration(
-                    labelText: 'Prénom',
-                    border: const OutlineInputBorder(),
-                    labelStyle: TextStyle(fontSize: responsive.fontSize(14)),
-                  ),
-                  style: TextStyle(fontSize: responsive.fontSize(14)),
-                ),
-                SizedBox(height: responsive.spacing(16)),
-                TextField(
-                  controller: nomController,
-                  decoration: InputDecoration(
-                    labelText: 'Nom',
-                    border: const OutlineInputBorder(),
-                    labelStyle: TextStyle(fontSize: responsive.fontSize(14)),
-                  ),
-                  style: TextStyle(fontSize: responsive.fontSize(14)),
-                ),
-              ],
+            const SizedBox(height: 16),
+            TextField(
+              controller: nomController,
+              decoration: const InputDecoration(
+                labelText: 'Nom',
+                border: OutlineInputBorder(),
+              ),
             ),
-          ),
+          ],
         ),
         actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: Text(
-              'Annuler',
-              style: TextStyle(fontSize: responsive.fontSize(14)),
-            ),
-          ),
+          TextButton(onPressed: () => Get.back(), child: const Text('Annuler')),
           ElevatedButton(
             onPressed: () async {
-              // Afficher loading
               Get.dialog(
                 const Center(child: CircularProgressIndicator()),
                 barrierDismissible: false,
@@ -888,29 +879,17 @@ class _ProfilePageState extends State<ProfilePage> {
                 nom: nomController.text.trim(),
               );
 
-              Get.back(); // Fermer loading
-              Get.back(); // Fermer dialogue
+              Get.back();
+              Get.back();
 
-              if (success) {
-                Get.snackbar(
-                  'Succès',
-                  'Profil mis à jour avec succès',
-                  backgroundColor: Colors.green,
-                  colorText: Colors.white,
-                );
-              } else {
-                Get.snackbar(
-                  'Erreur',
-                  'Impossible de mettre à jour le profil',
-                  backgroundColor: Colors.red,
-                  colorText: Colors.white,
-                );
-              }
+              Get.snackbar(
+                success ? 'Succès' : 'Erreur',
+                success ? 'Profil mis à jour' : 'Impossible de mettre à jour',
+                backgroundColor: success ? Colors.green : Colors.red,
+                colorText: Colors.white,
+              );
             },
-            child: Text(
-              'Enregistrer',
-              style: TextStyle(fontSize: responsive.fontSize(14)),
-            ),
+            child: const Text('Enregistrer'),
           ),
         ],
       ),
@@ -918,120 +897,47 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   void _showSecuritySettings(ResponsiveHelper responsive) {
-    final currentPasswordController = TextEditingController();
     final newPasswordController = TextEditingController();
     final confirmPasswordController = TextEditingController();
 
-    final RxBool obscureCurrentPassword = true.obs;
-    final RxBool obscureNewPassword = true.obs;
-    final RxBool obscureConfirmPassword = true.obs;
-
     Get.dialog(
       AlertDialog(
-        title: Text(
-          'Changer le mot de passe',
-          style: TextStyle(fontSize: responsive.fontSize(18)),
-        ),
-        content: SingleChildScrollView(
-          child: Container(
-            constraints: BoxConstraints(
-              maxWidth: responsive.value<double>(
-                mobile: 300,
-                tablet: 400,
-                desktop: 500,
+        title: const Text('Changer le mot de passe'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: newPasswordController,
+              obscureText: true,
+              decoration: const InputDecoration(
+                labelText: 'Nouveau mot de passe',
+                border: OutlineInputBorder(),
               ),
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Nouveau mot de passe
-                Obx(
-                  () => TextField(
-                    controller: newPasswordController,
-                    obscureText: obscureNewPassword.value,
-                    decoration: InputDecoration(
-                      labelText: 'Nouveau mot de passe',
-                      border: const OutlineInputBorder(),
-                      labelStyle: TextStyle(fontSize: responsive.fontSize(14)),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          obscureNewPassword.value
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                          size: responsive.iconSize(20),
-                        ),
-                        onPressed: () => obscureNewPassword.toggle(),
-                      ),
-                    ),
-                    style: TextStyle(fontSize: responsive.fontSize(14)),
-                  ),
-                ),
-                SizedBox(height: responsive.spacing(16)),
-                // Confirmer mot de passe
-                Obx(
-                  () => TextField(
-                    controller: confirmPasswordController,
-                    obscureText: obscureConfirmPassword.value,
-                    decoration: InputDecoration(
-                      labelText: 'Confirmer le mot de passe',
-                      border: const OutlineInputBorder(),
-                      labelStyle: TextStyle(fontSize: responsive.fontSize(14)),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          obscureConfirmPassword.value
-                              ? Icons.visibility_off
-                              : Icons.visibility,
-                          size: responsive.iconSize(20),
-                        ),
-                        onPressed: () => obscureConfirmPassword.toggle(),
-                      ),
-                    ),
-                    style: TextStyle(fontSize: responsive.fontSize(14)),
-                  ),
-                ),
-                SizedBox(height: responsive.spacing(8)),
-                Text(
-                  'Le mot de passe doit contenir au moins 6 caractères',
-                  style: TextStyle(
-                    fontSize: responsive.fontSize(12),
-                    color: Colors.grey,
-                  ),
-                ),
-              ],
+            const SizedBox(height: 16),
+            TextField(
+              controller: confirmPasswordController,
+              obscureText: true,
+              decoration: const InputDecoration(
+                labelText: 'Confirmer le mot de passe',
+                border: OutlineInputBorder(),
+              ),
             ),
-          ),
+          ],
         ),
         actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: Text(
-              'Annuler',
-              style: TextStyle(fontSize: responsive.fontSize(14)),
-            ),
-          ),
+          TextButton(onPressed: () => Get.back(), child: const Text('Annuler')),
           ElevatedButton(
             onPressed: () async {
-              // Validation
-              if (newPasswordController.text.isEmpty) {
-                Get.snackbar(
-                  'Erreur',
-                  'Veuillez entrer un nouveau mot de passe',
-                  backgroundColor: Colors.red,
-                  colorText: Colors.white,
-                );
-                return;
-              }
-
               if (newPasswordController.text.length < 6) {
                 Get.snackbar(
                   'Erreur',
-                  'Le mot de passe doit contenir au moins 6 caractères',
+                  'Minimum 6 caractères',
                   backgroundColor: Colors.red,
                   colorText: Colors.white,
                 );
                 return;
               }
-
               if (newPasswordController.text !=
                   confirmPasswordController.text) {
                 Get.snackbar(
@@ -1043,7 +949,6 @@ class _ProfilePageState extends State<ProfilePage> {
                 return;
               }
 
-              // Afficher loading
               Get.dialog(
                 const Center(child: CircularProgressIndicator()),
                 barrierDismissible: false,
@@ -1053,29 +958,17 @@ class _ProfilePageState extends State<ProfilePage> {
                 password: newPasswordController.text,
               );
 
-              Get.back(); // Fermer loading
-              Get.back(); // Fermer dialogue
+              Get.back();
+              Get.back();
 
-              if (success) {
-                Get.snackbar(
-                  'Succès',
-                  'Mot de passe changé avec succès',
-                  backgroundColor: Colors.green,
-                  colorText: Colors.white,
-                );
-              } else {
-                Get.snackbar(
-                  'Erreur',
-                  'Impossible de changer le mot de passe',
-                  backgroundColor: Colors.red,
-                  colorText: Colors.white,
-                );
-              }
+              Get.snackbar(
+                success ? 'Succès' : 'Erreur',
+                success ? 'Mot de passe changé' : 'Impossible de changer',
+                backgroundColor: success ? Colors.green : Colors.red,
+                colorText: Colors.white,
+              );
             },
-            child: Text(
-              'Changer',
-              style: TextStyle(fontSize: responsive.fontSize(14)),
-            ),
+            child: const Text('Changer'),
           ),
         ],
       ),
@@ -1085,47 +978,20 @@ class _ProfilePageState extends State<ProfilePage> {
   void _showAbout(ResponsiveHelper responsive) {
     Get.dialog(
       AlertDialog(
-        title: Text(
-          'À propos de MarPro+',
-          style: TextStyle(fontSize: responsive.fontSize(18)),
-        ),
-        content: Container(
-          constraints: BoxConstraints(
-            maxWidth: responsive.value<double>(
-              mobile: 300,
-              tablet: 400,
-              desktop: 500,
-            ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'MarPro+ est une application de gestion collaborative de projets.',
-                style: TextStyle(fontSize: responsive.fontSize(14)),
-              ),
-              SizedBox(height: responsive.spacing(16)),
-              Text(
-                'Version: 1.0.0',
-                style: TextStyle(fontSize: responsive.fontSize(14)),
-              ),
-              SizedBox(height: responsive.spacing(8)),
-              Text(
-                'Développé avec ❤️',
-                style: TextStyle(fontSize: responsive.fontSize(14)),
-              ),
-            ],
-          ),
+        title: const Text('À propos de MarPro+'),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('MarPro+ est une application de gestion collaborative.'),
+            SizedBox(height: 16),
+            Text('Version: 1.0.0'),
+            SizedBox(height: 8),
+            Text('Développé avec ❤️'),
+          ],
         ),
         actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: Text(
-              'Fermer',
-              style: TextStyle(fontSize: responsive.fontSize(14)),
-            ),
-          ),
+          TextButton(onPressed: () => Get.back(), child: const Text('Fermer')),
         ],
       ),
     );
@@ -1134,44 +1000,26 @@ class _ProfilePageState extends State<ProfilePage> {
   void _confirmLogout(ResponsiveHelper responsive) {
     Get.dialog(
       AlertDialog(
-        title: Text(
-          'Déconnexion',
-          style: TextStyle(fontSize: responsive.fontSize(18)),
-        ),
-        content: Text(
-          'Êtes-vous sûr de vouloir vous déconnecter ?',
-          style: TextStyle(fontSize: responsive.fontSize(14)),
-        ),
+        title: const Text('Déconnexion'),
+        content: const Text('Êtes-vous sûr de vouloir vous déconnecter ?'),
         actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: Text(
-              'Annuler',
-              style: TextStyle(fontSize: responsive.fontSize(14)),
-            ),
-          ),
+          TextButton(onPressed: () => Get.back(), child: const Text('Annuler')),
           TextButton(
             onPressed: () {
               Get.back();
               _logout();
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: Text(
-              'Se déconnecter',
-              style: TextStyle(fontSize: responsive.fontSize(14)),
-            ),
+            child: const Text('Se déconnecter'),
           ),
         ],
       ),
     );
   }
 
-  // === Méthodes de logique métier inchangées ===
-
   void _logout() async {
     await _authController.logout();
     Get.offAllNamed(AppRoutes.welcome);
-
     Get.snackbar(
       'Déconnecté',
       'Vous avez été déconnecté avec succès.',
@@ -1185,7 +1033,6 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Color _getUserColor(UserModel user) {
-    final hash = user.email.hashCode;
     final colors = [
       Colors.blue,
       Colors.green,
@@ -1196,21 +1043,14 @@ class _ProfilePageState extends State<ProfilePage> {
       Colors.indigo,
       Colors.amber,
     ];
-    return colors[hash.abs() % colors.length];
+    return colors[user.email.hashCode.abs() % colors.length];
   }
 
   String _formatDate(DateTime date) {
-    final now = DateTime.now();
-    final difference = now.difference(date);
-
-    if (difference.inDays < 30) {
-      return '${difference.inDays} jours';
-    } else if (difference.inDays < 365) {
-      final months = (difference.inDays / 30).floor();
-      return '$months mois';
-    } else {
-      final years = (difference.inDays / 365).floor();
-      return '$years an${years > 1 ? 's' : ''}';
-    }
+    final difference = DateTime.now().difference(date);
+    if (difference.inDays < 30) return '${difference.inDays} jours';
+    if (difference.inDays < 365)
+      return '${(difference.inDays / 30).floor()} mois';
+    return '${(difference.inDays / 365).floor()} an(s)';
   }
 }

@@ -1,3 +1,4 @@
+import 'package:community/controllers/notification_controller.dart';
 import 'package:community/core/services/task_service.dart';
 import 'package:community/data/models/kanban_model.dart';
 import 'package:community/data/models/task_model.dart';
@@ -10,6 +11,25 @@ class TaskController extends GetxController {
   final Rx<TaskModel?> currentTask = Rx<TaskModel?>(null);
   final RxBool isLoading = false.obs;
   final RxString error = ''.obs;
+
+  // ✅ Helper pour envoyer des notifications
+  void _notify(
+    String type,
+    String title,
+    String message, {
+    int? relatedId,
+    String? relatedType,
+  }) {
+    if (Get.isRegistered<NotificationController>()) {
+      Get.find<NotificationController>().addLocalNotification(
+        type: type,
+        title: title,
+        message: message,
+        relatedId: relatedId,
+        relatedType: relatedType,
+      );
+    }
+  }
 
   Future<void> loadKanbanTasks({
     required int communityId,
@@ -53,13 +73,29 @@ class TaskController extends GetxController {
         assignedTo: assignedTo,
         dueDate: dueDate,
       );
-      print(task!.id);
 
-      _addTaskToKanban(task);
-      return task;
+      if (task != null) {
+        _addTaskToKanban(task);
+
+        // ✅ NOTIFICATION : Tâche créée
+        _notify(
+          'task_created',
+          'Tâche créée',
+          'La tâche "${task.titre}" a été créée avec succès.',
+          relatedId: task.id,
+          relatedType: 'task',
+        );
+
+        return task;
+      }
+
       return null;
     } catch (e) {
       error.value = 'Erreur de création de la tâche: $e';
+
+      // ✅ NOTIFICATION : Erreur
+      _notify('error', 'Erreur', 'Impossible de créer la tâche: $e');
+
       return null;
     } finally {
       isLoading.value = false;
@@ -113,11 +149,22 @@ class TaskController extends GetxController {
         dueDate: dueDate,
       );
 
-      if (success && currentTask.value?.id == taskId) {
-        await loadTaskDetails(
-          communityId: communityId,
-          projectId: projectId,
-          taskId: taskId,
+      if (success) {
+        if (currentTask.value?.id == taskId) {
+          await loadTaskDetails(
+            communityId: communityId,
+            projectId: projectId,
+            taskId: taskId,
+          );
+        }
+
+        // ✅ NOTIFICATION : Tâche modifiée
+        _notify(
+          'task_updated',
+          'Tâche modifiée',
+          'La tâche "${titre ?? 'Tâche'}" a été mise à jour.',
+          relatedId: taskId,
+          relatedType: 'task',
         );
       }
 
@@ -153,6 +200,18 @@ class TaskController extends GetxController {
         if (currentTask.value?.id == taskId) {
           currentTask.value = currentTask.value?.copyWith(status: status);
         }
+
+        // ✅ NOTIFICATION : Statut changé
+        String icon = status == 'Terminé'
+            ? '✅'
+            : (status == 'En cours' ? '🔄' : '📋');
+        _notify(
+          'task_status_changed',
+          'Statut modifié',
+          '$icon La tâche est maintenant "$status".',
+          relatedId: taskId,
+          relatedType: 'task',
+        );
       }
 
       return success;
@@ -173,6 +232,12 @@ class TaskController extends GetxController {
       isLoading.value = true;
       error.value = '';
 
+      // Sauvegarder le titre avant suppression
+      String? taskTitle;
+      final allTasksList = allTasks;
+      final taskToDelete = allTasksList.firstWhereOrNull((t) => t.id == taskId);
+      taskTitle = taskToDelete?.titre;
+
       final success = await _taskService.deleteTask(
         communityId: communityId,
         projectId: projectId,
@@ -185,6 +250,13 @@ class TaskController extends GetxController {
         if (currentTask.value?.id == taskId) {
           currentTask.value = null;
         }
+
+        // ✅ NOTIFICATION : Tâche supprimée
+        _notify(
+          'task_deleted',
+          'Tâche supprimée',
+          'La tâche "${taskTitle ?? 'Tâche'}" a été supprimée.',
+        );
       }
 
       return success;
@@ -230,7 +302,6 @@ class TaskController extends GetxController {
     List<TaskModel> newInProgress = [...kanban.value!.inProgress];
     List<TaskModel> newDone = [...kanban.value!.done];
 
-    // Chercher et retirer la tâche de sa colonne actuelle
     task = newTodo.firstWhereOrNull((t) => t.id == taskId);
     if (task != null) {
       newTodo.removeWhere((t) => t.id == taskId);

@@ -20,29 +20,37 @@ class _ProjectsListPageState extends State<ProjectsListPage> {
   final ProjectController _projectController = Get.find();
   final CommunityController _communityController = Get.find();
 
-  late int _communityId;
+  bool _hasLoadedOnce = false;
 
   @override
   void initState() {
     super.initState();
-    final community = _communityController.currentCommunity.value;
-    if (community != null) {
-      _communityId = community.community_id;
-      _loadProjects();
-    }
+    // On ne charge plus ici, on laisse build décider quand tout est prêt
   }
 
   Future<void> _loadProjects() async {
-    await _projectController.loadProjects(_communityId);
+    final community = _communityController.currentCommunity.value;
+    if (community == null) return;
+
+    await _projectController.loadProjects(community.community_id);
   }
 
   @override
   Widget build(BuildContext context) {
     final community = _communityController.currentCommunity.value;
+
     if (community == null) {
       return const Scaffold(
         body: Center(child: Text('Communauté non sélectionnée')),
       );
+    }
+
+    // 🔁 S'assurer qu'on charge une fois automatiquement à l'ouverture
+    if (!_hasLoadedOnce) {
+      _hasLoadedOnce = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _loadProjects();
+      });
     }
 
     return Scaffold(
@@ -61,7 +69,8 @@ class _ProjectsListPageState extends State<ProjectsListPage> {
         ],
       ),
       body: Obx(() {
-        if (_projectController.isLoading.value) {
+        if (_projectController.isLoading.value &&
+            _projectController.projects.isEmpty) {
           return const LoadingWidget(message: 'Chargement des projets...');
         }
 

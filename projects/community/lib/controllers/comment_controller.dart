@@ -1,3 +1,4 @@
+import 'package:community/controllers/notification_controller.dart';
 import 'package:community/core/services/comment_service.dart';
 import 'package:community/data/models/comment_model.dart';
 import 'package:get/get.dart';
@@ -7,6 +8,25 @@ class CommentController extends GetxController {
   final RxList<CommentModel> comments = <CommentModel>[].obs;
   final RxBool isLoading = false.obs;
   final RxString error = ''.obs;
+
+  // ✅ Helper pour envoyer des notifications
+  void _notify(
+    String type,
+    String title,
+    String message, {
+    int? relatedId,
+    String? relatedType,
+  }) {
+    if (Get.isRegistered<NotificationController>()) {
+      Get.find<NotificationController>().addLocalNotification(
+        type: type,
+        title: title,
+        message: message,
+        relatedId: relatedId,
+        relatedType: relatedType,
+      );
+    }
+  }
 
   Future<void> loadTaskComments({
     required int communityId,
@@ -50,15 +70,25 @@ class CommentController extends GetxController {
       );
 
       if (comment != null) {
-        comments.insert(
-          0,
-          comment,
-        ); // Ajouter au début pour afficher le plus récent en premier
+        comments.insert(0, comment);
+
+        // ✅ NOTIFICATION : Commentaire ajouté
+        _notify(
+          'comment_added',
+          'Commentaire ajouté',
+          'Votre commentaire a été publié avec succès.',
+          relatedId: taskId,
+          relatedType: 'task',
+        );
       }
 
       return comment;
     } catch (e) {
       error.value = 'Erreur d\'ajout de commentaire: $e';
+
+      // ✅ NOTIFICATION : Erreur
+      _notify('error', 'Erreur', 'Impossible d\'ajouter le commentaire.');
+
       return null;
     } finally {
       isLoading.value = false;
@@ -87,12 +117,20 @@ class CommentController extends GetxController {
       if (success) {
         final index = comments.indexWhere((c) => c.id == commentId);
         if (index != -1) {
-          // ✅ Utiliser copyWith au lieu de créer un nouveau CommentModel
           comments[index] = comments[index].copyWith(
             content: content,
             updated_at: DateTime.now(),
           );
         }
+
+        // ✅ NOTIFICATION : Commentaire modifié
+        _notify(
+          'comment_updated',
+          'Commentaire modifié',
+          'Votre commentaire a été mis à jour.',
+          relatedId: taskId,
+          relatedType: 'task',
+        );
       }
 
       return success;
@@ -123,6 +161,15 @@ class CommentController extends GetxController {
 
       if (success) {
         comments.removeWhere((c) => c.id == commentId);
+
+        // ✅ NOTIFICATION : Commentaire supprimé
+        _notify(
+          'comment_deleted',
+          'Commentaire supprimé',
+          'Le commentaire a été supprimé.',
+          relatedId: taskId,
+          relatedType: 'task',
+        );
       }
 
       return success;
@@ -140,15 +187,10 @@ class CommentController extends GetxController {
   }
 
   bool canEditComment(CommentModel comment, int currentUserId) {
-    // L'utilisateur peut modifier son propre commentaire
-    // Pour simplifier, nous vérifierons via l'email (à adapter selon l'implémentation)
-    // Dans une vraie app, vous auriez l'ID utilisateur dans le commentaire
-    return comment.email ==
-        'current_user@example.com'; // À remplacer par la logique réelle
+    return comment.email == 'current_user@example.com';
   }
 
   bool canDeleteComment(CommentModel comment, String userRole) {
-    // ADMIN et RESPONSABLE peuvent supprimer tous les commentaires
     return userRole == 'ADMIN' || userRole == 'RESPONSABLE';
   }
 }
