@@ -2,6 +2,7 @@ import 'package:community/controllers/activity_controller.dart';
 import 'package:community/controllers/auth_controller.dart';
 import 'package:community/controllers/comment_controller.dart';
 import 'package:community/controllers/community_controller.dart';
+import 'package:community/controllers/community_settings_controller.dart';
 import 'package:community/controllers/notification_controller.dart';
 import 'package:community/controllers/project_controller.dart';
 import 'package:community/controllers/task_controller.dart';
@@ -37,6 +38,7 @@ class InitialBinding extends Bindings {
     Get.lazyPut(() => CommentService(), fenix: true);
     Get.lazyPut(() => ActivityService(), fenix: true);
     Get.lazyPut(() => NotificationService(), fenix: true);
+    Get.lazyPut(() => CommunitySettingsController(), fenix: true); 
 
     // 4. Initialiser les controllers
     Get.lazyPut(() => AuthController(), fenix: true);
@@ -47,5 +49,6 @@ class InitialBinding extends Bindings {
     Get.lazyPut(() => ActivityController(), fenix: true);
     Get.lazyPut(() => NotificationController(), fenix: true);
     Get.lazyPut(() => ThemeController(), fenix: true);
+    
   }
 }

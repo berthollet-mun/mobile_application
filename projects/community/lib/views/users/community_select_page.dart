@@ -10,6 +10,7 @@ import 'package:community/views/shared/widgets/empty_state.dart';
 import 'package:community/views/shared/widgets/loading_widget.dart';
 import 'package:community/views/shared/widgets/role_badge.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
 class CommunitySelectPage extends StatefulWidget {
@@ -113,10 +114,8 @@ class _CommunitySelectPageState extends State<CommunitySelectPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // En-tête
             _buildHeader(responsive),
             SizedBox(height: responsive.spacing(24)),
-            // Grille de communautés
             Expanded(
               child: GridView.builder(
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -158,14 +157,11 @@ class _CommunitySelectPageState extends State<CommunitySelectPage> {
         responsive.isMobileSmall ? 140 : 100,
       ),
       children: [
-        // En-tête
         _buildHeader(responsive),
         SizedBox(height: responsive.spacing(16)),
-        // Liste des communautés
         ..._communityController.communities.map((community) {
           return _buildCommunityCard(community, responsive);
         }),
-        // SizedBox(height: responsive.spacing(120)), // Espace pour les FAB
       ],
     );
   }
@@ -188,7 +184,7 @@ class _CommunitySelectPageState extends State<CommunitySelectPage> {
     );
   }
 
-  /// Carte de communauté responsive
+  /// Carte de communauté (sans stats)
   Widget _buildCommunityCard(
     CommunityModel community,
     ResponsiveHelper responsive,
@@ -277,9 +273,7 @@ class _CommunitySelectPageState extends State<CommunitySelectPage> {
                 ],
               ),
               SizedBox(height: responsive.spacing(16)),
-              // Statistiques
-              _buildStatisticsRow(community, responsive),
-              SizedBox(height: responsive.spacing(16)),
+
               // Bouton d'action
               SizedBox(
                 height: responsive.value<double>(
@@ -298,71 +292,6 @@ class _CommunitySelectPageState extends State<CommunitySelectPage> {
           ),
         ),
       ),
-    );
-  }
-
-  /// Ligne de statistiques responsive
-  Widget _buildStatisticsRow(
-    CommunityModel community,
-    ResponsiveHelper responsive,
-  ) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Expanded(
-          child: _buildStatItem(
-            icon: Icons.people_outline,
-            value: community.members_count.toString(),
-            label: 'Membres',
-            responsive: responsive,
-          ),
-        ),
-        Expanded(
-          child: _buildStatItem(
-            icon: Icons.folder_outlined,
-            value: community.projects_count.toString(),
-            label: 'Projets',
-            responsive: responsive,
-          ),
-        ),
-        Expanded(
-          child: _buildStatItem(
-            icon: Icons.calendar_today,
-            value: community.created_at != null
-                ? _formatDate(community.created_at!)
-                : 'N/A',
-            label: 'Créée',
-            responsive: responsive,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStatItem({
-    required IconData icon,
-    required String value,
-    required String label,
-    required ResponsiveHelper responsive,
-  }) {
-    return Column(
-      children: [
-        Icon(icon, size: responsive.iconSize(20), color: Colors.black87),
-        SizedBox(height: responsive.spacing(4)),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: responsive.fontSize(13),
-            fontWeight: FontWeight.w600,
-            color: Colors.black87,
-          ),
-        ),
-
-        Text(
-          label,
-          style: AppTheme.bodyText2.copyWith(fontSize: responsive.fontSize(11)),
-        ),
-      ],
     );
   }
 
@@ -439,28 +368,30 @@ class _CommunitySelectPageState extends State<CommunitySelectPage> {
 
   /// Barre inférieure responsive
   Widget _buildBottomBar(ResponsiveHelper responsive) {
-    return Container(
-      padding: EdgeInsets.all(responsive.spacing(16)),
-      color: Theme.of(context).cardColor,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            '${_communityController.communities.length} communauté(s)',
-            style: AppTheme.bodyText2.copyWith(
-              fontSize: responsive.fontSize(13),
+    return Obx(() {
+      return Container(
+        padding: EdgeInsets.all(responsive.spacing(16)),
+        color: Theme.of(context).cardColor,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              '${_communityController.communities.length} communauté(s)',
+              style: AppTheme.bodyText2.copyWith(
+                fontSize: responsive.fontSize(13),
+              ),
             ),
-          ),
-          TextButton(
-            onPressed: () => _showHelpDialog(responsive),
-            child: Text(
-              'Aide',
-              style: TextStyle(fontSize: responsive.fontSize(13)),
+            TextButton(
+              onPressed: () => _showHelpDialog(responsive),
+              child: Text(
+                'Aide',
+                style: TextStyle(fontSize: responsive.fontSize(13)),
+              ),
             ),
-          ),
-        ],
-      ),
-    );
+          ],
+        ),
+      );
+    });
   }
 
   /// Dialog d'aide responsive
@@ -601,8 +532,7 @@ class _CommunitySelectPageState extends State<CommunitySelectPage> {
     );
   }
 
-  // === Les autres méthodes restent identiques mais avec responsive passé en paramètre ===
-
+  /// Détails de la communauté
   void _showCommunityDetails(
     CommunityModel community,
     ResponsiveHelper responsive,
@@ -717,6 +647,7 @@ class _CommunitySelectPageState extends State<CommunitySelectPage> {
     );
   }
 
+  /// Modifier communauté
   void _editCommunity(CommunityModel community, ResponsiveHelper responsive) {
     final nameController = TextEditingController(text: community.nom);
     final descriptionController = TextEditingController(
@@ -818,6 +749,7 @@ class _CommunitySelectPageState extends State<CommunitySelectPage> {
     );
   }
 
+  /// Quitter communauté (fonctionnalité en développement)
   void _confirmLeaveCommunity(
     CommunityModel community,
     ResponsiveHelper responsive,
@@ -825,29 +757,19 @@ class _CommunitySelectPageState extends State<CommunitySelectPage> {
     Get.dialog(
       AlertDialog(
         title: Text(
-          'Quitter la communauté',
+          'Fonctionnalité en développement',
           style: TextStyle(fontSize: responsive.fontSize(18)),
         ),
         content: Text(
-          'Êtes-vous sûr de vouloir quitter la communauté "${community.nom}" ?',
+          'La possibilité de quitter une communauté n\'est pas encore disponible. '
+          'Cette fonctionnalité sera ajoutée dans une prochaine mise à jour.',
           style: TextStyle(fontSize: responsive.fontSize(14)),
         ),
         actions: [
           TextButton(
             onPressed: () => Get.back(),
             child: Text(
-              'Annuler',
-              style: TextStyle(fontSize: responsive.fontSize(14)),
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              Get.back();
-              _leaveCommunity(community);
-            },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: Text(
-              'Quitter',
+              'OK',
               style: TextStyle(fontSize: responsive.fontSize(14)),
             ),
           ),
@@ -856,7 +778,7 @@ class _CommunitySelectPageState extends State<CommunitySelectPage> {
     );
   }
 
-  // === Méthodes de logique métier inchangées ===
+  // === Méthodes de logique métier ===
 
   void _selectCommunity(CommunityModel community) async {
     try {
@@ -879,17 +801,21 @@ class _CommunitySelectPageState extends State<CommunitySelectPage> {
     }
   }
 
-  void _copyInviteCode(CommunityModel community) {
+  void _copyInviteCode(CommunityModel community) async {
+    final code = community.invite_code.toString();
+
+    await Clipboard.setData(ClipboardData(text: code));
+
     Get.snackbar(
       'Code copié',
-      'Le code d\'invitation a été copié dans le presse-papier',
+      'Le code d\'invitation "$code" a été copié dans le presse-papier',
       backgroundColor: Colors.green,
       colorText: Colors.white,
     );
   }
 
+  // Méthode prête pour plus tard (non utilisée actuellement)
   Future<void> _leaveCommunity(CommunityModel community) async {
-    // Récupérer l'ID de l'utilisateur connecté
     final userId = _authController.user.value?.user_id;
 
     if (userId == null) {

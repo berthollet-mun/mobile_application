@@ -4,6 +4,7 @@ import 'package:community/core/utils/responsive_helper.dart';
 import 'package:community/core/utils/widgets/responsive_builder.dart';
 import 'package:community/data/models/community_model.dart';
 import 'package:community/views/shared/widgets/button.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -64,15 +65,18 @@ class _InviteMemberPageState extends State<InviteMemberPage> {
     }
   }
 
-  void _copyToClipboard() {
-    // clipboard.setData(ClipboardData(text: _inviteCode));
-    Get.snackbar(
-      'Copié !',
-      'Le code d\'invitation a été copié dans le presse-papier',
-      backgroundColor: Colors.green,
-      colorText: Colors.white,
-    );
-  }
+void _copyToClipboard() async {
+  // ✅ Copier le code dans le presse-papiers
+  await Clipboard.setData(ClipboardData(text: _inviteCode));
+
+  // ✅ Message de confirmation
+  Get.snackbar(
+    'Copié !',
+    'Le code d\'invitation "$_inviteCode" a été copié dans le presse-papier',
+    backgroundColor: Colors.green,
+    colorText: Colors.white,
+  );
+}
 
   void _shareInvite() {
     Get.snackbar(

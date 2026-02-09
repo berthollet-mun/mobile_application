@@ -18,12 +18,6 @@ class NotificationController extends GetxController {
 
   static const int _maxLocalNotifications = 100;
 
-  @override
-  void onInit() {
-    super.onInit();
-    // Ne pas charger automatiquement - attendre que l'utilisateur soit connecté
-  }
-
   /// Charger les notifications depuis l'API
   Future<void> loadNotifications() async {
     try {

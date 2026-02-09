@@ -21,4 +21,5 @@ class AppRoutes {
   static const String profile = '/profile';
   static const String notifications =
       '/notifications'; // ✅ Cette ligne existe ?
+  static const String communitySettings = '/community-settings';
 }

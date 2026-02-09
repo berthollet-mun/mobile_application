@@ -122,9 +122,7 @@ class _MembersListPageState extends State<MembersListPage> {
             Text(member.email),
             const SizedBox(height: 4),
             Text(
-              member.joinedAt != null
-                  ? 'Rejoint le ${_formatDate(member.joinedAt!)}'
-                  : 'Date inconnue',
+              'Rejoint le ${_formatDate(member.joinedAt)}',
               style: AppTheme.bodyText2.copyWith(fontSize: 12),
             ),
           ],
@@ -310,9 +308,7 @@ class _MembersListPageState extends State<MembersListPage> {
             const SizedBox(height: 8),
             Text('Rôle: ${member.role}'),
             const SizedBox(height: 8),
-            Text(
-              'Rejoint le: ${member.joinedAt != null ? _formatDate(member.joinedAt!) : 'N/A'}',
-            ),
+            Text('Rejoint le: ${_formatDate(member.joinedAt)}'),
           ],
         ),
         actions: [

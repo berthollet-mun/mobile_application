@@ -8,6 +8,8 @@ import 'package:community/views/shared/widgets/button.dart';
 import 'package:community/views/shared/widgets/loading_widget.dart';
 import 'package:community/views/shared/widgets/role_badge.dart';
 import 'package:community/controllers/auth_controller.dart';
+import 'package:community/controllers/task_controller.dart';
+import 'package:flutter/services.dart'; 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -22,6 +24,7 @@ class _CommunityDashboardPageState extends State<CommunityDashboardPage> {
   final CommunityController _communityController = Get.find();
   final ProjectController _projectController = Get.find();
   final AuthController _authController = Get.find();
+  final TaskController _taskController = Get.find();
 
   late CommunityModel _community;
 
@@ -32,10 +35,21 @@ class _CommunityDashboardPageState extends State<CommunityDashboardPage> {
     _loadData();
   }
 
-  Future<void> _loadData() async {
-    await _projectController.loadProjects(_community.community_id);
-    await _communityController.refreshCurrentCommunity();
+Future<void> _loadData() async {
+  await _projectController.loadProjects(_community.community_id);
+  await _communityController.refreshCurrentCommunity();
+
+  // ✅ Charger les tâches du premier projet actif (s’il existe)
+  final community = _communityController.currentCommunity.value;
+  final projects = _projectController.activeProjects;
+
+  if (community != null && projects.isNotEmpty) {
+    await _taskController.loadKanbanTasks(
+      communityId: community.community_id,
+      projectId: projects.first.id,
+    );
   }
+}
 
   Future<void> _refreshData() async {
     await _loadData();
@@ -349,53 +363,61 @@ class _CommunityDashboardPageState extends State<CommunityDashboardPage> {
             ),
           ),
           SizedBox(height: responsive.spacing(16)),
-          GridView.count(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: responsive.value<int>(
-              mobile: 2,
-              tablet: 2,
-              desktop: 2,
-              largeDesktop: 4,
-            ),
-            crossAxisSpacing: responsive.spacing(12),
-            mainAxisSpacing: responsive.spacing(12),
-            childAspectRatio: responsive.value<double>(
-              mobile: 1.2,
-              tablet: 1.4,
-              desktop: 1.5,
-            ),
-            children: [
-              _buildStatCard(
-                responsive,
-                icon: Icons.people_outline,
-                value: community.members_count.toString(),
-                label: 'Membres',
-                color: Colors.blue,
-              ),
-              _buildStatCard(
-                responsive,
-                icon: Icons.folder_outlined,
-                value: community.projects_count.toString(),
-                label: 'Projets',
-                color: Colors.green,
-              ),
-              _buildStatCard(
-                responsive,
-                icon: Icons.task_outlined,
-                value: '0',
-                label: 'Tâches',
-                color: Colors.orange,
-              ),
-              _buildStatCard(
-                responsive,
-                icon: Icons.check_circle_outline,
-                value: '0%',
-                label: 'Achevées',
-                color: Colors.purple,
-              ),
-            ],
-          ),
+      GridView.count(
+  shrinkWrap: true,
+  physics: const NeverScrollableScrollPhysics(),
+  crossAxisCount: responsive.value<int>(
+    mobile: 2,
+    tablet: 2,
+    desktop: 2,
+    largeDesktop: 4,
+  ),
+  crossAxisSpacing: responsive.spacing(12),
+  mainAxisSpacing: responsive.spacing(12),
+  childAspectRatio: responsive.value<double>(
+    mobile: 1.2,
+    tablet: 1.4,
+    desktop: 1.5,
+  ),
+  children: [
+    _buildStatCard(
+      responsive,
+      icon: Icons.people_outline,
+      value: community.members_count.toString(),
+      label: 'Membres',
+      color: Colors.blue,
+    ),
+    _buildStatCard(
+      responsive,
+      icon: Icons.folder_outlined,
+      value: community.projects_count.toString(),
+      label: 'Projets',
+      color: Colors.green,
+    ),
+    // ✅ Tâches (dynamiques)
+    Obx(() {
+      final totalTasks = _taskController.totalTasksCount;
+      return _buildStatCard(
+        responsive,
+        icon: Icons.task_outlined,
+        value: '$totalTasks',
+        label: 'Tâches',
+        color: Colors.orange,
+      );
+    }),
+    // ✅ Achevées (dynamiques)
+    Obx(() {
+      final percent = _taskController.completionPercentage;
+      return _buildStatCard(
+        responsive,
+        icon: Icons.check_circle_outline,
+        value: '${percent.toStringAsFixed(0)}%',
+        label: 'Achevées',
+        color: Colors.purple,
+      );
+    }),
+  ],
+),
         ],
       ),
     );
@@ -1026,42 +1048,32 @@ class _CommunityDashboardPageState extends State<CommunityDashboardPage> {
     );
   }
 
-  void _confirmDeleteCommunity(CommunityModel community) {
-    final responsive = ResponsiveHelper(context);
+ void _confirmDeleteCommunity(CommunityModel community) {
+  final responsive = ResponsiveHelper(context);
 
-    Get.dialog(
-      AlertDialog(
-        title: Text(
-          'Supprimer la communauté',
-          style: TextStyle(fontSize: responsive.fontSize(18)),
-        ),
-        content: Text(
-          'Êtes-vous sûr de vouloir supprimer définitivement la communauté "${community.nom}" ? Cette action est irréversible.',
-          style: TextStyle(fontSize: responsive.fontSize(14)),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: Text(
-              'Annuler',
-              style: TextStyle(fontSize: responsive.fontSize(14)),
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              Get.back();
-              _deleteCommunity(community);
-            },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: Text(
-              'Supprimer',
-              style: TextStyle(fontSize: responsive.fontSize(14)),
-            ),
-          ),
-        ],
+  Get.dialog(
+    AlertDialog(
+      title: Text(
+        'Fonctionnalité en développement',
+        style: TextStyle(fontSize: responsive.fontSize(18)),
       ),
-    );
-  }
+      content: Text(
+        'La suppression de communauté ne sont pas encore disponibles. '
+        'Cette fonctionnalité sera ajoutée dans une prochaine mise à jour.',
+        style: TextStyle(fontSize: responsive.fontSize(14)),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Get.back(),
+          child: Text(
+            'OK',
+            style: TextStyle(fontSize: responsive.fontSize(14)),
+          ),
+        ),
+      ],
+    ),
+  );
+}
 
   Future<void> _deleteCommunity(CommunityModel community) async {
     print('=== DELETE COMMUNITY ===');
@@ -1096,41 +1108,31 @@ class _CommunityDashboardPageState extends State<CommunityDashboardPage> {
   }
 
   void _confirmLeaveCommunity(CommunityModel community) {
-    final responsive = ResponsiveHelper(context);
+  final responsive = ResponsiveHelper(context);
 
-    Get.dialog(
-      AlertDialog(
-        title: Text(
-          'Quitter la communauté',
-          style: TextStyle(fontSize: responsive.fontSize(18)),
-        ),
-        content: Text(
-          'Êtes-vous sûr de vouloir quitter la communauté "${community.nom}" ?',
-          style: TextStyle(fontSize: responsive.fontSize(14)),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: Text(
-              'Annuler',
-              style: TextStyle(fontSize: responsive.fontSize(14)),
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              Get.back();
-              _leaveCommunity(community);
-            },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: Text(
-              'Quitter',
-              style: TextStyle(fontSize: responsive.fontSize(14)),
-            ),
-          ),
-        ],
+  Get.dialog(
+    AlertDialog(
+      title: Text(
+        'Fonctionnalité en développement',
+        style: TextStyle(fontSize: responsive.fontSize(18)),
       ),
-    );
-  }
+      content: Text(
+        'La possibilité de quitter une communauté ne sont pas encore disponibles. '
+        'Cette fonctionnalité sera ajoutée dans une prochaine mise à jour.',
+        style: TextStyle(fontSize: responsive.fontSize(14)),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Get.back(),
+          child: Text(
+            'OK',
+            style: TextStyle(fontSize: responsive.fontSize(14)),
+          ),
+        ),
+      ],
+    ),
+  );
+}
 
   Future<void> _leaveCommunity(CommunityModel community) async {
     // Récupérer l'ID de l'utilisateur connecté
@@ -1170,14 +1172,20 @@ class _CommunityDashboardPageState extends State<CommunityDashboardPage> {
     }
   }
 
-  void _copyInviteCode(CommunityModel community) {
-    Get.snackbar(
-      'Code copié',
-      'Le code d\'invitation a été copié dans le presse-papier.',
-      backgroundColor: Colors.green,
-      colorText: Colors.white,
-    );
-  }
+void _copyInviteCode(CommunityModel community) async {
+  final code = community.invite_code.toString();
+
+  // ✅ Copier dans le presse-papiers
+  await Clipboard.setData(ClipboardData(text: code));
+
+  // ✅ Feedback à l’utilisateur
+  Get.snackbar(
+    'Code copié',
+    'Le code d\'invitation "$code" a été copié dans le presse-papier.',
+    backgroundColor: Colors.green,
+    colorText: Colors.white,
+  );
+}
 
   void _showSettings(CommunityModel community) {
     Get.snackbar(
@@ -1187,6 +1195,10 @@ class _CommunityDashboardPageState extends State<CommunityDashboardPage> {
       colorText: Colors.white,
     );
   }
+
+//   void _showSettings(CommunityModel community) {
+//   Get.toNamed(AppRoutes.communitySettings);
+// }
 
   void _showHelp() {
     final responsive = ResponsiveHelper(context);

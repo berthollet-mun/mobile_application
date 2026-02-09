@@ -1049,8 +1049,9 @@ class _ProfilePageState extends State<ProfilePage> {
   String _formatDate(DateTime date) {
     final difference = DateTime.now().difference(date);
     if (difference.inDays < 30) return '${difference.inDays} jours';
-    if (difference.inDays < 365)
+    if (difference.inDays < 365) {
       return '${(difference.inDays / 30).floor()} mois';
+    }
     return '${(difference.inDays / 365).floor()} an(s)';
   }
 }

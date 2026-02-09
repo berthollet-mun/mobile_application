@@ -6,6 +6,7 @@ import 'package:community/views/community/create_community/create_community_page
 import 'package:community/views/community/invite_member/invite_member_page.dart';
 import 'package:community/views/community/join_community/join_community_page.dart';
 import 'package:community/views/community/memebers_list/members_list_page.dart';
+import 'package:community/views/community_settings/community_settings_page.dart';
 import 'package:community/views/history/activity_log_page.dart';
 import 'package:community/views/notifications/notifications_page.dart';
 import 'package:community/views/profile/profile_page.dart';
@@ -69,5 +70,9 @@ class AppPages {
       name: AppRoutes.notifications,
       page: () => const NotificationsPage(),
     ),
+    GetPage(
+  name: AppRoutes.communitySettings,         // ✅ AJOUTER
+  page: () => const CommunitySettingsPage(),
+),
   ];
 }

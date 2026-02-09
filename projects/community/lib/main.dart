@@ -7,16 +7,21 @@ import 'package:community/app/themes/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get/get.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 
 void main() async {
-  // 1. Assurer l'initialisation de Flutter
-  WidgetsFlutterBinding.ensureInitialized();
+  // 1. Initialiser Flutter et préserver le splash natif
+  final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
 
-  // 2. Initialiser toutes les dépendances
+  // 2. Initialiser toutes les dépendances (ta logique existante)
   await AppInitialization.initialize();
 
-  // 3. Lancer l'application
+  // 3. Lancer l'application Flutter
   runApp(const MyApp());
+
+  // 4. Retirer le splash natif une fois que Flutter est prêt
+  FlutterNativeSplash.remove();
 }
 
 class MyApp extends StatelessWidget {
